@@ -17,13 +17,16 @@ def test_create_project(client):
 
 def test_list_projects(client):
     """Should list all projects."""
+    # Get baseline count
+    baseline = len(client.get("/api/projects").json())
+
     client.post("/api/projects", json={"title": "Paper 1"})
     client.post("/api/projects", json={"title": "Paper 2"})
 
     response = client.get("/api/projects")
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 2
+    assert len(data) == baseline + 2
 
 
 def test_get_project(client):

@@ -108,7 +108,7 @@ def _row_to_venue(row) -> VenueProfile:
         id=row["id"],
         venue_type=row["venue_type"],
         display_name=row["display_name"],
-        description=row.get("description", "") or "",
+        description=(row["description"] if row["description"] else ""),
         profile_data=VenueProfileData(**json.loads(row["profile_data"])),
         is_custom=bool(row["is_custom"]),
         created_at=row["created_at"],
