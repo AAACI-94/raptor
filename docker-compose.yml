@@ -1,0 +1,58 @@
+services:
+  raptor-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "${PORT:-8000}:8000"
+    volumes:
+      - raptor-data:/app/data
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - DATABASE_PATH=/app/data/raptor.db
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - OTEL_SERVICE_NAME=raptor
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - RAPTOR_MODEL_RESEARCH=${RAPTOR_MODEL_RESEARCH:-claude-sonnet-4-20250514}
+      - RAPTOR_MODEL_STRUCTURE=${RAPTOR_MODEL_STRUCTURE:-claude-sonnet-4-20250514}
+      - RAPTOR_MODEL_WRITER=${RAPTOR_MODEL_WRITER:-claude-sonnet-4-20250514}
+      - RAPTOR_MODEL_REVIEWER=${RAPTOR_MODEL_REVIEWER:-claude-opus-4-20250514}
+      - RAPTOR_MODEL_PRODUCTION=${RAPTOR_MODEL_PRODUCTION:-claude-sonnet-4-20250514}
+      - RAPTOR_MODEL_REFLECTION=${RAPTOR_MODEL_REFLECTION:-claude-haiku-4-5-20251001}
+      - RAPTOR_MODEL_OBSERVATORY=${RAPTOR_MODEL_OBSERVATORY:-claude-haiku-4-5-20251001}
+      - RAPTOR_MAX_REVISION_CYCLES=${RAPTOR_MAX_REVISION_CYCLES:-3}
+      - RAPTOR_REFLECTION_ENABLED=${RAPTOR_REFLECTION_ENABLED:-true}
+    depends_on:
+      jaeger:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  raptor-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      raptor-api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    restart: unless-stopped
+
+volumes:
+  raptor-data:
+    driver: local
