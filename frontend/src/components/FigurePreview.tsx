@@ -122,9 +122,6 @@ function FigureCard({ figure }: { figure: Figure }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Render Mermaid via an iframe pointing to mermaid.live for safety and simplicity
-  const mermaidEncoded = btoa(JSON.stringify({ code: figure.mermaid, mermaid: { theme: 'default' } }));
-
   return (
     <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
       {/* Figure header */}
@@ -192,8 +189,8 @@ function MermaidRenderer({ code }: { code: string }) {
 
   useEffect(() => {
     // Use mermaid.ink to render the diagram as SVG
-    // This is a public service that renders Mermaid to SVG via URL
-    const encoded = btoa(code);
+    // UTF-8 safe base64 encoding (btoa only handles Latin1)
+    const encoded = btoa(unescape(encodeURIComponent(code)));
     const url = `https://mermaid.ink/svg/${encoded}`;
 
     // Try to load as an image first
