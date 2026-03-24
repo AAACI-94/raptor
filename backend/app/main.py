@@ -39,15 +39,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     from app.agents.research_strategist import ResearchStrategist
     from app.agents.structure_architect import StructureArchitect
     from app.agents.domain_writer import DomainWriter
+    from app.agents.visual_architect import VisualArchitect
     from app.agents.critical_reviewer import CriticalReviewer
     from app.agents.production_agent import ProductionAgent
 
     orchestrator.register_agent("research_strategist", ResearchStrategist())
     orchestrator.register_agent("structure_architect", StructureArchitect())
     orchestrator.register_agent("domain_writer", DomainWriter())
+    orchestrator.register_agent("visual_architect", VisualArchitect())
     orchestrator.register_agent("critical_reviewer", CriticalReviewer())
     orchestrator.register_agent("production_agent", ProductionAgent())
-    logger.info("[main] All 5 agents registered")
+    logger.info("[main] All 6 agents registered")
 
     yield
 

@@ -59,6 +59,7 @@ export const api = {
 
   // Preview
   getPreview: (projectId: string) => request<any>(`/projects/${projectId}/preview`),
+  getFigures: (projectId: string) => request<any>(`/projects/${projectId}/figures`),
 
   // Health
   health: () => request<any>('/health'),

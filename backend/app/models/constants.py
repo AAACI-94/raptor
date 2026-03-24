@@ -7,6 +7,7 @@ class AgentRole(StrEnum):
     RESEARCH_STRATEGIST = "research_strategist"
     STRUCTURE_ARCHITECT = "structure_architect"
     DOMAIN_WRITER = "domain_writer"
+    VISUAL_ARCHITECT = "visual_architect"
     CRITICAL_REVIEWER = "critical_reviewer"
     PRODUCTION_AGENT = "production_agent"
     OBSERVATORY = "observatory"
@@ -20,6 +21,8 @@ class ProjectStatus(StrEnum):
     STRUCTURE_COMPLETE = "STRUCTURE_COMPLETE"
     DRAFTING = "DRAFTING"
     DRAFT_COMPLETE = "DRAFT_COMPLETE"
+    ILLUSTRATING = "ILLUSTRATING"
+    ILLUSTRATION_COMPLETE = "ILLUSTRATION_COMPLETE"
     REVIEWING = "REVIEWING"
     REVISION_REQUESTED = "REVISION_REQUESTED"
     REVIEW_PASSED = "REVIEW_PASSED"
@@ -32,6 +35,7 @@ class ArtifactType(StrEnum):
     RESEARCH_PLAN = "research_plan"
     OUTLINE = "outline"
     SECTION_DRAFT = "section_draft"
+    FIGURES = "figures"
     REVIEW = "review"
     PRODUCTION_OUTPUT = "production_output"
 
@@ -88,9 +92,11 @@ VALID_TRANSITIONS: dict[ProjectStatus, list[ProjectStatus]] = {
     ProjectStatus.STRUCTURING: [ProjectStatus.STRUCTURE_COMPLETE],
     ProjectStatus.STRUCTURE_COMPLETE: [ProjectStatus.DRAFTING],
     ProjectStatus.DRAFTING: [ProjectStatus.DRAFT_COMPLETE],
-    ProjectStatus.DRAFT_COMPLETE: [ProjectStatus.REVIEWING],
+    ProjectStatus.DRAFT_COMPLETE: [ProjectStatus.ILLUSTRATING],
+    ProjectStatus.ILLUSTRATING: [ProjectStatus.ILLUSTRATION_COMPLETE],
+    ProjectStatus.ILLUSTRATION_COMPLETE: [ProjectStatus.REVIEWING],
     ProjectStatus.REVIEWING: [ProjectStatus.REVIEW_PASSED, ProjectStatus.REVISION_REQUESTED],
-    ProjectStatus.REVISION_REQUESTED: [ProjectStatus.DRAFTING, ProjectStatus.STRUCTURING, ProjectStatus.RESEARCHING],
+    ProjectStatus.REVISION_REQUESTED: [ProjectStatus.ILLUSTRATING, ProjectStatus.DRAFTING, ProjectStatus.STRUCTURING, ProjectStatus.RESEARCHING],
     ProjectStatus.REVIEW_PASSED: [ProjectStatus.PRODUCING],
     ProjectStatus.PRODUCING: [ProjectStatus.PRODUCTION_COMPLETE],
     ProjectStatus.PRODUCTION_COMPLETE: [ProjectStatus.PUBLISHED],
@@ -101,6 +107,7 @@ STATUS_TO_AGENT: dict[ProjectStatus, AgentRole] = {
     ProjectStatus.RESEARCHING: AgentRole.RESEARCH_STRATEGIST,
     ProjectStatus.STRUCTURING: AgentRole.STRUCTURE_ARCHITECT,
     ProjectStatus.DRAFTING: AgentRole.DOMAIN_WRITER,
+    ProjectStatus.ILLUSTRATING: AgentRole.VISUAL_ARCHITECT,
     ProjectStatus.REVIEWING: AgentRole.CRITICAL_REVIEWER,
     ProjectStatus.PRODUCING: AgentRole.PRODUCTION_AGENT,
 }

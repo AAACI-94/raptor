@@ -11,8 +11,9 @@ from app.models.project import ProjectCreate, Project, NDAConfig
 def test_agent_roles_complete():
     """All expected agent roles should exist."""
     roles = list(AgentRole)
-    assert len(roles) == 6
+    assert len(roles) == 7
     assert AgentRole.RESEARCH_STRATEGIST in roles
+    assert AgentRole.VISUAL_ARCHITECT in roles
     assert AgentRole.CRITICAL_REVIEWER in roles
     assert AgentRole.OBSERVATORY in roles
 

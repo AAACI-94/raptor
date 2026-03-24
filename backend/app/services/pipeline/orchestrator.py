@@ -27,6 +27,7 @@ STAGE_AGENT_MAP = {
     ProjectStatus.RESEARCHING: "research_strategist",
     ProjectStatus.STRUCTURING: "structure_architect",
     ProjectStatus.DRAFTING: "domain_writer",
+    ProjectStatus.ILLUSTRATING: "visual_architect",
     ProjectStatus.REVIEWING: "critical_reviewer",
     ProjectStatus.PRODUCING: "production_agent",
 }
@@ -36,6 +37,7 @@ STAGE_ARTIFACT_MAP = {
     ProjectStatus.RESEARCHING: ArtifactType.RESEARCH_PLAN,
     ProjectStatus.STRUCTURING: ArtifactType.OUTLINE,
     ProjectStatus.DRAFTING: ArtifactType.SECTION_DRAFT,
+    ProjectStatus.ILLUSTRATING: ArtifactType.FIGURES,
     ProjectStatus.REVIEWING: ArtifactType.REVIEW,
     ProjectStatus.PRODUCING: ArtifactType.PRODUCTION_OUTPUT,
 }
@@ -45,7 +47,8 @@ ADVANCE_MAP = {
     ProjectStatus.TOPIC_SELECTED: ProjectStatus.RESEARCHING,
     ProjectStatus.RESEARCH_COMPLETE: ProjectStatus.STRUCTURING,
     ProjectStatus.STRUCTURE_COMPLETE: ProjectStatus.DRAFTING,
-    ProjectStatus.DRAFT_COMPLETE: ProjectStatus.REVIEWING,
+    ProjectStatus.DRAFT_COMPLETE: ProjectStatus.ILLUSTRATING,
+    ProjectStatus.ILLUSTRATION_COMPLETE: ProjectStatus.REVIEWING,
     ProjectStatus.REVIEW_PASSED: ProjectStatus.PRODUCING,
     ProjectStatus.PRODUCTION_COMPLETE: ProjectStatus.PUBLISHED,
 }
@@ -261,6 +264,7 @@ class PipelineOrchestrator:
             ProjectStatus.RESEARCHING: ProjectStatus.RESEARCH_COMPLETE,
             ProjectStatus.STRUCTURING: ProjectStatus.STRUCTURE_COMPLETE,
             ProjectStatus.DRAFTING: ProjectStatus.DRAFT_COMPLETE,
+            ProjectStatus.ILLUSTRATING: ProjectStatus.ILLUSTRATION_COMPLETE,
             ProjectStatus.REVIEWING: ProjectStatus.REVIEW_PASSED,  # Default pass; Reviewer may override
             ProjectStatus.PRODUCING: ProjectStatus.PRODUCTION_COMPLETE,
         }

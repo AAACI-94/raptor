@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Play, ChevronRight, RotateCcw, Shield, AlertCircle, CheckCircle2, Loader2, Download, Eye, Code } from 'lucide-react';
+import { Play, ChevronRight, RotateCcw, Shield, AlertCircle, CheckCircle2, Loader2, Download, Eye, Code, Image } from 'lucide-react';
 import { api } from '../api/client';
 import { useWebSocket } from '../hooks/useWebSocket';
 import DocumentPreview from '../components/DocumentPreview';
+import FigurePreview from '../components/FigurePreview';
 import type { Project, PipelineStatus, PipelineEvent } from '../types';
 
 const STAGES = [
@@ -11,6 +12,7 @@ const STAGES = [
   { key: 'RESEARCHING', label: 'Research', agent: 'research_strategist' },
   { key: 'STRUCTURING', label: 'Structure', agent: 'structure_architect' },
   { key: 'DRAFTING', label: 'Drafting', agent: 'domain_writer' },
+  { key: 'ILLUSTRATING', label: 'Figures', agent: 'visual_architect' },
   { key: 'REVIEWING', label: 'Review', agent: 'critical_reviewer' },
   { key: 'PRODUCING', label: 'Production', agent: 'production_agent' },
   { key: 'PUBLISHED', label: 'Published', agent: null },
@@ -20,6 +22,7 @@ function getStageIndex(status: string): number {
   // Order matters: more specific replacements first
   const s = status
     .replace('PRODUCTION_COMPLETE', 'PUBLISHED')
+    .replace('ILLUSTRATION_COMPLETE', 'REVIEWING')
     .replace('REVIEW_PASSED', 'PRODUCING')
     .replace('REVISION_REQUESTED', 'REVIEWING')
     .replace('_COMPLETE', '');
@@ -34,7 +37,7 @@ export default function Workspace() {
   const [error, setError] = useState<string | null>(null);
   const [acting, setActing] = useState(false);
   const [latestArtifact, setLatestArtifact] = useState<any>(null);
-  const [viewMode, setViewMode] = useState<'preview' | 'artifacts'>('preview');
+  const [viewMode, setViewMode] = useState<'preview' | 'figures' | 'artifacts'>('preview');
 
   const { events, connected } = useWebSocket(projectId || null);
 
@@ -176,6 +179,14 @@ export default function Workspace() {
               <Eye className="h-3.5 w-3.5" />Preview
             </button>
             <button
+              onClick={() => setViewMode('figures')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition-colors ${
+                viewMode === 'figures' ? 'bg-white dark:bg-gray-600 shadow-sm font-medium' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Image className="h-3.5 w-3.5" />Figures
+            </button>
+            <button
               onClick={() => setViewMode('artifacts')}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition-colors ${
                 viewMode === 'artifacts' ? 'bg-white dark:bg-gray-600 shadow-sm font-medium' : 'text-gray-500 hover:text-gray-700'
@@ -206,6 +217,11 @@ export default function Workspace() {
       {/* Document Preview */}
       {hasPreviewableContent && viewMode === 'preview' && (
         <DocumentPreview projectId={project.id} projectTitle={project.title} />
+      )}
+
+      {/* Figure Preview */}
+      {hasPreviewableContent && viewMode === 'figures' && (
+        <FigurePreview projectId={project.id} />
       )}
 
       {/* Artifact JSON view */}

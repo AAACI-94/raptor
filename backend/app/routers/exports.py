@@ -127,6 +127,23 @@ def preview_document(project_id: str):
     }
 
 
+@router.get("/projects/{project_id}/figures")
+def get_figures(project_id: str):
+    """Return all generated figures (Mermaid diagrams) for a project."""
+    artifact = artifact_service.get_latest_artifact(project_id, ArtifactType.FIGURES)
+    if not artifact:
+        raise HTTPException(status_code=404, detail="No figures generated yet. Run the Illustrating stage first.")
+
+    figures = artifact.payload.get("figures", [])
+    return {
+        "figures": figures,
+        "total_figures": len(figures),
+        "figure_plan": artifact.payload.get("figure_plan", ""),
+        "cross_references": artifact.payload.get("cross_references", []),
+        "venue_compliance_notes": artifact.payload.get("venue_compliance_notes", ""),
+    }
+
+
 @router.get("/projects/{project_id}/export/checklist")
 def get_submission_checklist(project_id: str):
     """Get the venue submission checklist from the production output."""
