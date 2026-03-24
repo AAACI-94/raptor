@@ -1,10 +1,9 @@
-"""AI provider router: Anthropic API, Claude CLI, or Ollama.
+"""AI provider router: Claude CLI or Ollama.
 
 Resolution order for "auto" mode:
-1. If ANTHROPIC_API_KEY is set, use Anthropic API (fastest, most capable)
-2. If Claude CLI is installed and authenticated, use Claude CLI (no API key needed)
-3. If Ollama is running with the configured model, use Ollama (free, local)
-4. Raise an error
+1. If Claude CLI is installed and authenticated, use Claude CLI (Sonnet/Opus quality)
+2. If Ollama is running with the configured model, use Ollama (free, local)
+3. Raise an error
 """
 
 import logging
@@ -25,12 +24,7 @@ def get_provider() -> str:
 
     mode = settings.raptor_provider
 
-    if mode == "anthropic":
-        if not settings.anthropic_api_key:
-            raise RuntimeError("RAPTOR_PROVIDER=anthropic but ANTHROPIC_API_KEY is not set")
-        _resolved_provider = "anthropic"
-
-    elif mode == "claude-cli":
+    if mode == "claude-cli":
         from app.services.ai.claude_cli import check_claude_cli
         if not check_claude_cli():
             raise RuntimeError("RAPTOR_PROVIDER=claude-cli but claude binary not found or not authenticated")
@@ -43,26 +37,21 @@ def get_provider() -> str:
         _resolved_provider = "ollama"
 
     else:  # auto
-        if settings.anthropic_api_key:
-            _resolved_provider = "anthropic"
-            logger.info("[ai-router] Auto-selected provider: anthropic (API key configured)")
+        from app.services.ai.claude_cli import check_claude_cli
+        if check_claude_cli():
+            _resolved_provider = "claude-cli"
+            logger.info("[ai-router] Auto-selected provider: claude-cli (binary found, keychain auth)")
         else:
-            from app.services.ai.claude_cli import check_claude_cli
-            if check_claude_cli():
-                _resolved_provider = "claude-cli"
-                logger.info("[ai-router] Auto-selected provider: claude-cli (binary found, keychain auth)")
+            from app.services.ai.ollama import check_ollama
+            if check_ollama():
+                _resolved_provider = "ollama"
+                logger.info("[ai-router] Auto-selected provider: ollama (%s available locally)", settings.raptor_ollama_model)
             else:
-                from app.services.ai.ollama import check_ollama
-                if check_ollama():
-                    _resolved_provider = "ollama"
-                    logger.info("[ai-router] Auto-selected provider: ollama (%s available locally)", settings.raptor_ollama_model)
-                else:
-                    raise RuntimeError(
-                        "No AI provider available. Options:\n"
-                        "  1. Set ANTHROPIC_API_KEY for Anthropic API\n"
-                        "  2. Install Claude CLI (npm i -g @anthropic-ai/claude-code) for keychain auth\n"
-                        f"  3. Start Ollama with '{settings.raptor_ollama_model}' (ollama pull {settings.raptor_ollama_model})"
-                    )
+                raise RuntimeError(
+                    "No AI provider available. Options:\n"
+                    "  1. Install Claude CLI (npm i -g @anthropic-ai/claude-code) for keychain auth\n"
+                    f"  2. Start Ollama with '{settings.raptor_ollama_model}' (ollama pull {settings.raptor_ollama_model})"
+                )
 
     return _resolved_provider
 
@@ -81,14 +70,7 @@ def complete(
     """Route a completion to the active provider."""
     provider = get_provider()
 
-    if provider == "anthropic":
-        from app.services.ai.client import ai_client
-        return ai_client.complete(
-            messages=messages, model=model, system=system, max_tokens=max_tokens,
-            temperature=temperature, tools=tools, agent_role=agent_role,
-            project_id=project_id, operation=operation,
-        )
-    elif provider == "claude-cli":
+    if provider == "claude-cli":
         from app.services.ai.claude_cli import claude_cli_client
         return claude_cli_client.complete(
             messages=messages, model=model, system=system, max_tokens=max_tokens,

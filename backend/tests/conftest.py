@@ -4,7 +4,6 @@ import os
 import pytest
 
 # Set test environment before importing app modules
-os.environ["ANTHROPIC_API_KEY"] = "test-key"
 os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = "http://localhost:4317"
 
 

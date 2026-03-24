@@ -18,7 +18,6 @@ from app.models.constants import (
 from app.models.envelope import ArtifactEnvelope, ArtifactMetadata
 from app.models.pipeline import PipelineStatus, StageTransition
 from app.services import project_service, artifact_service, venue_service
-from app.services.ai.client import ai_client
 from app.services.pipeline.websocket_manager import ws_manager
 
 logger = logging.getLogger(__name__)

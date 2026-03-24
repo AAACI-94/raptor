@@ -14,13 +14,10 @@ class Settings(BaseSettings):
     # Database
     database_path: str = "./data/raptor.db"
 
-    # Anthropic API
-    anthropic_api_key: str = ""
-
-    # Ollama (local fallback)
+    # AI Providers
+    raptor_provider: str = "auto"  # "auto", "claude-cli", "ollama"
     raptor_ollama_model: str = "qwen3.5"
     raptor_ollama_url: str = "http://localhost:11434"
-    raptor_provider: str = "auto"  # "auto", "anthropic", "ollama"
 
     # Model routing per agent role
     raptor_model_research: str = "claude-sonnet-4-20250514"
