@@ -11,7 +11,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.models.constants import AgentRole, ArtifactType, ArtifactStatus
 from app.models.envelope import ArtifactEnvelope, ArtifactMetadata, ReflectionResult
-from app.services.ai.client import ai_client
+from app.services.ai import router as ai_router
 from app.services.ai.prompts.base import build_system_prompt
 from app.services import artifact_service
 from app.services.pipeline.websocket_manager import ws_manager
@@ -55,7 +55,7 @@ class BaseAgent(ABC):
         if model is None:
             model = settings.get_model_for_role(self.role)
 
-        return ai_client.complete(
+        return ai_router.complete(
             messages=messages,
             model=model,
             system=system,
@@ -79,7 +79,7 @@ class BaseAgent(ABC):
         model = settings.get_model_for_role("reflection")
         system = "You are a quality checker. Evaluate the output against the given criteria. Respond with JSON: {\"passed\": true/false, \"issues\": [\"issue1\", ...]}"
 
-        result = ai_client.complete(
+        result = ai_router.complete(
             messages=[
                 {"role": "user", "content": f"## Criteria\n{reflection_prompt}\n\n## Output to Evaluate\n{output[:3000]}"}
             ],

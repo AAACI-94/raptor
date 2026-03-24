@@ -6,6 +6,7 @@ from fastapi import APIRouter
 
 from app.core.config import settings
 from app.core.database import check_db
+from app.services.ai.ollama import check_ollama
 
 logger = logging.getLogger(__name__)
 
@@ -14,14 +15,28 @@ router = APIRouter()
 
 @router.get("/health")
 def health_check() -> dict:
-    """Health check with database and API key probes."""
+    """Health check with database and AI provider probes."""
     db_ok = check_db()
     api_key_set = bool(settings.anthropic_api_key)
+    ollama_ok = check_ollama()
 
-    status = "ok" if db_ok and api_key_set else "degraded"
+    # At least one AI provider must be available
+    ai_ok = api_key_set or ollama_ok
+    status = "ok" if db_ok and ai_ok else "degraded"
+
+    # Determine active provider
+    if settings.raptor_provider == "anthropic":
+        provider = "anthropic"
+    elif settings.raptor_provider == "ollama":
+        provider = "ollama"
+    else:  # auto
+        provider = "anthropic" if api_key_set else ("ollama" if ollama_ok else "none")
+
     checks = {
         "database": "connected" if db_ok else "disconnected",
         "anthropic_api_key": "configured" if api_key_set else "missing",
+        "ollama": f"available ({settings.raptor_ollama_model})" if ollama_ok else "unavailable",
+        "active_provider": provider,
     }
 
     if status == "degraded":

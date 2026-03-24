@@ -17,6 +17,11 @@ class Settings(BaseSettings):
     # Anthropic API
     anthropic_api_key: str = ""
 
+    # Ollama (local fallback)
+    raptor_ollama_model: str = "qwen3.5"
+    raptor_ollama_url: str = "http://localhost:11434"
+    raptor_provider: str = "auto"  # "auto", "anthropic", "ollama"
+
     # Model routing per agent role
     raptor_model_research: str = "claude-sonnet-4-20250514"
     raptor_model_structure: str = "claude-sonnet-4-20250514"
