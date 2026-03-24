@@ -57,6 +57,9 @@ export const api = {
   // Feedback
   submitFeedback: (data: any) => request<any>('/observatory/feedback', { method: 'POST', body: JSON.stringify(data) }),
 
+  // Preview
+  getPreview: (projectId: string) => request<any>(`/projects/${projectId}/preview`),
+
   // Health
   health: () => request<any>('/health'),
 };

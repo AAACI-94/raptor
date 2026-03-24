@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Play, ChevronRight, RotateCcw, Shield, AlertCircle, CheckCircle2, Loader2, Download } from 'lucide-react';
+import { Play, ChevronRight, RotateCcw, Shield, AlertCircle, CheckCircle2, Loader2, Download, Eye, Code } from 'lucide-react';
 import { api } from '../api/client';
 import { useWebSocket } from '../hooks/useWebSocket';
+import DocumentPreview from '../components/DocumentPreview';
 import type { Project, PipelineStatus, PipelineEvent } from '../types';
 
 const STAGES = [
@@ -16,7 +17,12 @@ const STAGES = [
 ];
 
 function getStageIndex(status: string): number {
-  const s = status.replace('_COMPLETE', '').replace('REVIEW_PASSED', 'PRODUCING').replace('PRODUCTION_COMPLETE', 'PUBLISHED').replace('REVISION_REQUESTED', 'REVIEWING');
+  // Order matters: more specific replacements first
+  const s = status
+    .replace('PRODUCTION_COMPLETE', 'PUBLISHED')
+    .replace('REVIEW_PASSED', 'PRODUCING')
+    .replace('REVISION_REQUESTED', 'REVIEWING')
+    .replace('_COMPLETE', '');
   return STAGES.findIndex((st) => st.key === s || status.startsWith(st.key));
 }
 
@@ -28,6 +34,7 @@ export default function Workspace() {
   const [error, setError] = useState<string | null>(null);
   const [acting, setActing] = useState(false);
   const [latestArtifact, setLatestArtifact] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<'preview' | 'artifacts'>('preview');
 
   const { events, connected } = useWebSocket(projectId || null);
 
@@ -91,6 +98,7 @@ export default function Workspace() {
   const canStart = project.status === 'TOPIC_SELECTED' && project.venue_profile_id && project.topic_description;
   const canAdvance = project.status.endsWith('_COMPLETE') || project.status === 'REVIEW_PASSED';
   const isActive = project.status.endsWith('ING') && project.status !== 'TOPIC_SELECTED';
+  const hasPreviewableContent = activeStage >= 2; // From STRUCTURING onward there's something to preview
 
   return (
     <div>
@@ -140,30 +148,48 @@ export default function Workspace() {
       </div>
 
       {/* Actions */}
-      <div className="flex gap-3 mb-6">
-        {canStart && (
-          <button onClick={handleStart} disabled={acting}
-            className="flex items-center gap-2 px-4 py-2 bg-raptor-600 text-white rounded-lg hover:bg-raptor-700 disabled:opacity-50">
-            <Play className="h-4 w-4" />{acting ? 'Starting...' : 'Start Pipeline'}
-          </button>
-        )}
-        {canAdvance && (
-          <button onClick={handleAdvance} disabled={acting}
-            className="flex items-center gap-2 px-4 py-2 bg-raptor-600 text-white rounded-lg hover:bg-raptor-700 disabled:opacity-50">
-            <ChevronRight className="h-4 w-4" />{acting ? 'Advancing...' : 'Advance Pipeline'}
-          </button>
-        )}
-        {project.status === 'PRODUCTION_COMPLETE' && (
-          <a href={`/api/projects/${project.id}/export/docx`} download
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
-            <Download className="h-4 w-4" />Export DOCX
-          </a>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex gap-3">
+          {canStart && (
+            <button onClick={handleStart} disabled={acting}
+              className="flex items-center gap-2 px-4 py-2 bg-raptor-600 text-white rounded-lg hover:bg-raptor-700 disabled:opacity-50">
+              <Play className="h-4 w-4" />{acting ? 'Starting...' : 'Start Pipeline'}
+            </button>
+          )}
+          {canAdvance && (
+            <button onClick={handleAdvance} disabled={acting}
+              className="flex items-center gap-2 px-4 py-2 bg-raptor-600 text-white rounded-lg hover:bg-raptor-700 disabled:opacity-50">
+              <ChevronRight className="h-4 w-4" />{acting ? 'Advancing...' : 'Advance Pipeline'}
+            </button>
+          )}
+        </div>
+
+        {/* View mode toggle (show once we have artifacts) */}
+        {hasPreviewableContent && (
+          <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5">
+            <button
+              onClick={() => setViewMode('preview')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition-colors ${
+                viewMode === 'preview' ? 'bg-white dark:bg-gray-600 shadow-sm font-medium' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Eye className="h-3.5 w-3.5" />Preview
+            </button>
+            <button
+              onClick={() => setViewMode('artifacts')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition-colors ${
+                viewMode === 'artifacts' ? 'bg-white dark:bg-gray-600 shadow-sm font-medium' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Code className="h-3.5 w-3.5" />Artifacts
+            </button>
+          </div>
         )}
       </div>
 
       {/* Live Events */}
       {events.length > 0 && (
-        <div className="bg-gray-900 rounded-lg p-4 mb-6 max-h-64 overflow-y-auto font-mono text-xs">
+        <div className="bg-gray-900 rounded-lg p-4 mb-6 max-h-48 overflow-y-auto font-mono text-xs">
           {events.map((ev, i) => (
             <div key={i} className="text-gray-300 py-0.5">
               <span className="text-gray-500">[{ev.agent || 'pipeline'}]</span>{' '}
@@ -177,8 +203,13 @@ export default function Workspace() {
         </div>
       )}
 
-      {/* Latest Artifact Preview */}
-      {latestArtifact && (
+      {/* Document Preview */}
+      {hasPreviewableContent && viewMode === 'preview' && (
+        <DocumentPreview projectId={project.id} projectTitle={project.title} />
+      )}
+
+      {/* Artifact JSON view */}
+      {viewMode === 'artifacts' && latestArtifact && (
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
           <h3 className="text-sm font-semibold mb-2 text-gray-600">Latest Artifact: {latestArtifact.artifact_type}</h3>
           <pre className="text-xs bg-gray-50 dark:bg-gray-900 p-3 rounded overflow-auto max-h-96">
