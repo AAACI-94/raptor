@@ -12,8 +12,12 @@ from app.core.telemetry import agent_span, record_llm_call
 
 logger = logging.getLogger(__name__)
 
-OLLAMA_BASE_URL = "http://localhost:11434"
 DEFAULT_MODEL = "qwen3.5"
+
+
+def _get_ollama_url() -> str:
+    """Get Ollama URL from config (not hardcoded, supports Docker networking)."""
+    return settings.raptor_ollama_url
 # qwen3.5 is a reasoning model; it generates thinking tokens that take time.
 TIMEOUT = 300.0
 
@@ -61,7 +65,7 @@ class OllamaClient:
 
             try:
                 resp = httpx.post(
-                    f"{OLLAMA_BASE_URL}/api/chat",
+                    f"{_get_ollama_url()}/api/chat",
                     json=payload,
                     timeout=TIMEOUT,
                 )
@@ -156,7 +160,7 @@ class OllamaClient:
 def check_ollama() -> bool:
     """Check if Ollama is running and has the required model."""
     try:
-        resp = httpx.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=5.0)
+        resp = httpx.get(f"{_get_ollama_url()}/api/tags", timeout=5.0)
         if resp.status_code != 200:
             return False
         models = [m.get("name", "") for m in resp.json().get("models", [])]

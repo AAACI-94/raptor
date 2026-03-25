@@ -4,6 +4,7 @@ No ANTHROPIC_API_KEY needed. Shells out to `claude -p` with stream-json output.
 Uses the same interface as AnthropicClient and OllamaClient for drop-in routing.
 """
 
+import asyncio
 import json
 import logging
 import os

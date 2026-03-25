@@ -51,19 +51,31 @@ class BaseAgent(ABC):
         max_tokens: int = 4096,
         temperature: float = 0.7,
     ) -> dict[str, Any]:
-        """Run an LLM completion with this agent's model routing."""
+        """Run an LLM completion with this agent's model routing.
+
+        PERFORMANCE: Runs the blocking LLM call in a thread pool executor
+        so it doesn't block the asyncio event loop. This keeps WebSocket
+        updates, health checks, and concurrent requests responsive.
+        """
+        import asyncio
+
         if model is None:
             model = settings.get_model_for_role(self.role)
 
-        return ai_router.complete(
-            messages=messages,
-            model=model,
-            system=system,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            agent_role=self.role,
-            project_id=project_id,
-            operation=operation,
+        # Run the blocking LLM call in a thread to avoid blocking the event loop
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            None,  # default ThreadPoolExecutor
+            lambda: ai_router.complete(
+                messages=messages,
+                model=model,
+                system=system,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                agent_role=self.role,
+                project_id=project_id,
+                operation=operation,
+            ),
         )
 
     async def self_reflect(
@@ -72,25 +84,47 @@ class BaseAgent(ABC):
         reflection_prompt: str,
         project_id: str | None = None,
     ) -> ReflectionResult:
-        """Run a self-reflection checkpoint using Haiku."""
+        """Run a self-reflection checkpoint.
+
+        PERFORMANCE: Always routes to Ollama (local, no subprocess overhead)
+        regardless of the global provider. Reflection is a lightweight pass/fail
+        check that doesn't need Claude-quality reasoning.
+        """
         if not settings.raptor_reflection_enabled:
             return ReflectionResult(passed=True, reflection_model="disabled")
 
-        model = settings.get_model_for_role("reflection")
         system = "You are a quality checker. Evaluate the output against the given criteria. Respond with JSON: {\"passed\": true/false, \"issues\": [\"issue1\", ...]}"
 
-        result = ai_router.complete(
-            messages=[
-                {"role": "user", "content": f"## Criteria\n{reflection_prompt}\n\n## Output to Evaluate\n{output[:3000]}"}
-            ],
-            model=model,
-            system=system,
-            max_tokens=1024,
-            temperature=0.0,
-            agent_role=f"{self.role}.reflection",
-            project_id=project_id,
-            operation="self_reflection",
-        )
+        # Always use Ollama for reflection (fast, local, no subprocess overhead)
+        from app.services.ai.ollama import ollama_client, check_ollama
+        if check_ollama():
+            result = ollama_client.complete(
+                messages=[
+                    {"role": "user", "content": f"## Criteria\n{reflection_prompt}\n\n## Output to Evaluate\n{output[:3000]}"}
+                ],
+                model=settings.raptor_ollama_model,
+                system=system,
+                max_tokens=1024,
+                temperature=0.0,
+                agent_role=f"{self.role}.reflection",
+                project_id=project_id,
+                operation="self_reflection",
+            )
+        else:
+            # Fallback to global router if Ollama unavailable
+            model = settings.get_model_for_role("reflection")
+            result = ai_router.complete(
+                messages=[
+                    {"role": "user", "content": f"## Criteria\n{reflection_prompt}\n\n## Output to Evaluate\n{output[:3000]}"}
+                ],
+                model=model,
+                system=system,
+                max_tokens=1024,
+                temperature=0.0,
+                agent_role=f"{self.role}.reflection",
+                project_id=project_id,
+                operation="self_reflection",
+            )
 
         try:
             # Parse the reflection response
@@ -147,7 +181,7 @@ class BaseAgent(ABC):
         confidence: float = 0.0,
         alternatives: list[str] | None = None,
     ) -> None:
-        """Log a decision to the decision_logs table."""
+        """Log a decision to the decision_logs table. No immediate commit (batched)."""
         try:
             db = get_db()
             db.execute(
@@ -157,7 +191,7 @@ class BaseAgent(ABC):
                 (str(uuid.uuid4()), project_id, self.role, decision, rationale,
                  json.dumps(alternatives) if alternatives else None, confidence),
             )
-            db.commit()
+            # No commit here; batched with artifact store in orchestrator
         except Exception as e:
             self.logger.warning("[%s] Failed to log decision: %s", self.role, e)
 
