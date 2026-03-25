@@ -136,7 +136,7 @@ class ClaudeCliClient:
                         "--no-session-persistence",
                         "--model", cli_model,
                         "--max-turns", "1",
-                        "--tools", "",
+                        "--allowedTools", "",
                         "--setting-sources", "",
                     ],
                     input=prompt,
@@ -219,7 +219,7 @@ class ClaudeCliClient:
         parts: list[str] = []
 
         if system:
-            parts.append(f"<instructions>\n{system}\n</instructions>")
+            parts.append(f"<instructions>\n{system}\n\nIMPORTANT: Respond with text only. Do NOT use any tools, function calls, or XML tool invocations. Output your response directly as text.\n</instructions>")
 
         system_msgs = [m for m in messages if m.get("role") == "system"]
         conv_msgs = [m for m in messages if m.get("role") != "system"]

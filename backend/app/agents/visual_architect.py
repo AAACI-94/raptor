@@ -86,6 +86,12 @@ radar-beta
 ```
 
 ### quadrantChart (4-Quadrant Analysis)
+CRITICAL: quadrantChart has STRICT syntax rules:
+- Quadrant labels (quadrant-1 through quadrant-4) must be plain text only. NO parentheses, NO brackets, NO colons, NO slashes.
+- Point names must also be plain text before the colon. NO parentheses. Put codes/IDs before the name: "LLM01 Prompt Injection" not "Prompt Injection (LLM01)".
+- Coordinates must be [x, y] with values 0.0 to 1.0.
+
+CORRECT example:
 ```
 quadrantChart
     title Risk Prioritization Matrix
@@ -95,10 +101,16 @@ quadrantChart
     quadrant-2 Monitor Closely
     quadrant-3 Accept Risk
     quadrant-4 Scheduled Fix
-    SQL Injection: [0.8, 0.9]
-    XSS Stored: [0.6, 0.7]
-    Info Disclosure: [0.3, 0.2]
+    LLM01 Prompt Injection: [0.85, 0.90]
+    LLM07 Insecure Tool Use: [0.75, 0.85]
+    T1059 Command Execution: [0.60, 0.70]
+    Supply Chain Risk: [0.30, 0.50]
 ```
+
+WRONG (will cause parse errors):
+- `quadrant-1 Critical Priority (Level 2)` -- parentheses break the parser
+- `Prompt Injection (LLM01): [0.5, 0.5]` -- parentheses in point name
+- `quadrant-3 Accept/Document` -- slash may cause issues
 
 ### xychart (Line/Bar Charts)
 ```
@@ -326,11 +338,17 @@ Respond with the JSON structure from your system prompt."""
         await self.broadcast_progress(project.id, "Parsing figures...", 70)
         payload = self._parse_output(result["content"])
 
-        # Post-process: normalize line breaks to <br/> for htmlLabels rendering
+        # Post-process: sanitize Mermaid code for reliable rendering
         for fig in payload.get("figures", []):
             mermaid = fig.get("mermaid", "")
             # Normalize \n inside node labels to <br/> (htmlLabels is enabled)
             mermaid = mermaid.replace("\\n", "<br/>")
+            # Sanitize quadrantChart: strip parentheses and slashes from labels/points
+            if "quadrantChart" in mermaid:
+                mermaid = self._sanitize_quadrant(mermaid)
+            # Sanitize sankey-beta: replace unicode arrows with ASCII
+            if "sankey-beta" in mermaid:
+                mermaid = mermaid.replace("\u2192", "->").replace("\u2190", "<-")
             fig["mermaid"] = mermaid
 
         figure_count = len(payload.get("figures", []))
@@ -370,7 +388,73 @@ Respond with the JSON structure from your system prompt."""
             reflection_result=reflection,
         )
 
+    def _sanitize_quadrant(self, mermaid: str) -> str:
+        """Sanitize quadrantChart code to remove characters that break the parser.
+
+        Mermaid's quadrantChart parser chokes on parentheses, brackets, and slashes
+        in quadrant labels and point names.
+        """
+        import re
+        lines = mermaid.split("\n")
+        sanitized = []
+        for line in lines:
+            stripped = line.strip()
+            indent = line[:len(line) - len(line.lstrip())]
+
+            if stripped.startswith("quadrant-"):
+                # "quadrant-1 Critical Priority (Level 2)" -> "quadrant-1 Critical Priority"
+                clean = re.sub(r'\s*\([^)]*\)', '', stripped)
+                clean = clean.replace("/", " or ")
+                line = indent + clean
+            elif ": [" in stripped and not stripped.startswith(("title", "x-axis", "y-axis", "quadrant")):
+                # Point: "Prompt Injection (LLM01): [0.85, 0.90]" -> "LLM01 Prompt Injection: [0.85, 0.90]"
+                colon_idx = stripped.rfind(": [")
+                if colon_idx > 0:
+                    name = stripped[:colon_idx]
+                    coords = stripped[colon_idx:]
+                    # Extract parenthesized code and move it to front
+                    paren_match = re.search(r'\(([^)]+)\)', name)
+                    if paren_match:
+                        code = paren_match.group(1)
+                        name = re.sub(r'\s*\([^)]*\)', '', name).strip()
+                        name = f"{code} {name}"
+                    name = name.replace("/", " or ")
+                    line = indent + name + coords
+
+            sanitized.append(line)
+        return "\n".join(sanitized)
+
     def _parse_output(self, content: str) -> dict:
+        """Parse JSON from LLM output, handling tool-call artifacts and preamble text."""
+        # Strategy: find the JSON block containing "figures" key
+        # The LLM sometimes emits thinking text or tool calls before the actual JSON
+        figures_idx = content.find('"figures"')
+        if figures_idx < 0:
+            return {"figures": [], "raw_content": content}
+
+        # Walk backwards from "figures" to find the opening brace
+        brace_idx = content.rfind("{", 0, figures_idx)
+        if brace_idx < 0:
+            return {"figures": [], "raw_content": content}
+
+        # Find the matching closing brace by counting brace depth
+        depth = 0
+        end_idx = brace_idx
+        for i in range(brace_idx, len(content)):
+            if content[i] == "{":
+                depth += 1
+            elif content[i] == "}":
+                depth -= 1
+                if depth == 0:
+                    end_idx = i + 1
+                    break
+
+        try:
+            return json.loads(content[brace_idx:end_idx])
+        except json.JSONDecodeError:
+            pass
+
+        # Fallback: try the simple first/last brace approach
         try:
             start = content.find("{")
             end = content.rfind("}") + 1
@@ -378,4 +462,5 @@ Respond with the JSON structure from your system prompt."""
                 return json.loads(content[start:end])
         except json.JSONDecodeError:
             pass
+
         return {"figures": [], "raw_content": content}
