@@ -1,6 +1,24 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Image, AlertCircle, Copy, CheckCircle2, ChevronDown, ChevronRight } from 'lucide-react';
+import mermaid from 'mermaid';
 import { api } from '../api/client';
+
+// Initialize mermaid once
+let mermaidInitialized = false;
+function ensureMermaidInit() {
+  if (!mermaidInitialized) {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'default',
+      securityLevel: 'loose',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
+      sequence: { useMaxWidth: true },
+      mindmap: { useMaxWidth: true },
+    });
+    mermaidInitialized = true;
+  }
+}
 
 interface Figure {
   figure_id: string;
@@ -110,7 +128,6 @@ export default function FigurePreview({ projectId }: FigurePreviewProps) {
 function FigureCard({ figure }: { figure: Figure }) {
   const [showMermaid, setShowMermaid] = useState(false);
   const [copied, setCopied] = useState(false);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const typeColor = Object.entries(DIAGRAM_TYPE_COLORS).find(
     ([key]) => figure.diagram_type.startsWith(key) || figure.mermaid.startsWith(key)
@@ -181,37 +198,59 @@ function FigureCard({ figure }: { figure: Figure }) {
 }
 
 
-/** Renders Mermaid code as SVG using mermaid.ink (a free rendering service).
- *  Falls back to showing the source code if rendering fails. */
+/** Renders Mermaid code as SVG using the bundled mermaid.js library (client-side). */
 function MermaidRenderer({ code }: { code: string }) {
-  const [svg, setSvg] = useState<string | null>(null);
-  const [error, setError] = useState(false);
+  const [svgHtml, setSvgHtml] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [rendering, setRendering] = useState(true);
 
   useEffect(() => {
-    // Use mermaid.ink to render the diagram as SVG
-    // UTF-8 safe base64 encoding (btoa only handles Latin1)
-    const encoded = btoa(unescape(encodeURIComponent(code)));
-    const url = `https://mermaid.ink/svg/${encoded}`;
+    ensureMermaidInit();
 
-    // Try to load as an image first
-    const img = new window.Image();
-    img.onload = () => setSvg(url);
-    img.onerror = () => setError(true);
-    img.src = url;
+    let cancelled = false;
+    setSvgHtml(null);
+    setError(null);
+    setRendering(true);
 
-    return () => {
-      img.onload = null;
-      img.onerror = null;
+    // Normalize literal \n to <br/> for multi-line node labels (htmlLabels is enabled)
+    const normalizedCode = code.replace(/\\n/g, '<br/>');
+
+    // Generate a unique ID for this render (mermaid requires unique IDs)
+    const renderId = `mermaid-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+    const render = async () => {
+      try {
+        const { svg } = await mermaid.render(renderId, normalizedCode);
+        if (!cancelled) {
+          // Make SVG responsive by patching the SVG string
+          const responsiveSvg = svg
+            .replace(/height="[\d.]+"/, '')
+            .replace(/<svg /, '<svg style="max-width:100%;height:auto;" ');
+          setSvgHtml(responsiveSvg);
+        }
+      } catch (e: any) {
+        if (!cancelled) {
+          setError(e.message || 'Failed to render diagram');
+        }
+        // Clean up any error elements mermaid may have injected into the DOM
+        const errorEl = document.getElementById('d' + renderId);
+        if (errorEl) errorEl.remove();
+      } finally {
+        if (!cancelled) setRendering(false);
+      }
     };
+
+    render();
+
+    return () => { cancelled = true; };
   }, [code]);
 
   if (error) {
-    // Fallback: render as styled code block
     return (
       <div className="w-full">
         <div className="flex items-center gap-2 text-xs text-amber-600 mb-2">
           <AlertCircle className="h-3 w-3" />
-          Diagram preview unavailable. Mermaid source shown below.
+          Diagram render error: {error.slice(0, 120)}
         </div>
         <pre className="text-xs font-mono bg-gray-50 dark:bg-gray-900 p-3 rounded overflow-x-auto whitespace-pre-wrap border">
           {code}
@@ -220,7 +259,7 @@ function MermaidRenderer({ code }: { code: string }) {
     );
   }
 
-  if (!svg) {
+  if (rendering || !svgHtml) {
     return (
       <div className="flex items-center gap-2 text-gray-400 py-8">
         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-raptor-600" />
@@ -230,11 +269,9 @@ function MermaidRenderer({ code }: { code: string }) {
   }
 
   return (
-    <img
-      src={svg}
-      alt="Mermaid diagram"
-      className="max-w-full h-auto"
-      style={{ maxHeight: '500px' }}
+    <div
+      className="w-full overflow-x-auto"
+      dangerouslySetInnerHTML={{ __html: svgHtml }}
     />
   );
 }

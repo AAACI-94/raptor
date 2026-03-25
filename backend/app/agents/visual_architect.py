@@ -159,7 +159,7 @@ journey
 ```
 
 ## CRITICAL SYNTAX RULES
-1. Do NOT use HTML tags like `<br/>` in node labels. Use `\\n` for line breaks in flowchart nodes.
+1. Use `<br/>` for line breaks inside node labels in flowcharts (htmlLabels is enabled).
 2. Use double quotes around labels with spaces: `A["My Label"]`
 3. For subgraph labels with spaces, use quotes: `subgraph sg1["My Subgraph"]`
 4. Avoid special characters in node IDs (use alphanumeric + underscores only)
@@ -298,11 +298,11 @@ Respond with the JSON structure from your system prompt."""
         await self.broadcast_progress(project.id, "Parsing figures...", 70)
         payload = self._parse_output(result["content"])
 
-        # Post-process: sanitize Mermaid syntax
+        # Post-process: normalize line breaks to <br/> for htmlLabels rendering
         for fig in payload.get("figures", []):
             mermaid = fig.get("mermaid", "")
-            # Replace HTML <br/> with \n (common LLM mistake)
-            mermaid = mermaid.replace("<br/>", "\\n").replace("<br>", "\\n")
+            # Normalize \n inside node labels to <br/> (htmlLabels is enabled)
+            mermaid = mermaid.replace("\\n", "<br/>")
             fig["mermaid"] = mermaid
 
         figure_count = len(payload.get("figures", []))
