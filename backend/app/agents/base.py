@@ -126,6 +126,8 @@ class BaseAgent(ABC):
                 operation="self_reflection",
             )
 
+        used_model = result.get("model", "unknown")
+
         try:
             # Parse the reflection response
             content = result["content"]
@@ -136,13 +138,13 @@ class BaseAgent(ABC):
                 return ReflectionResult(
                     passed=parsed.get("passed", True),
                     issues_found=parsed.get("issues", []),
-                    reflection_model=model,
+                    reflection_model=used_model,
                     reflection_tokens=result["input_tokens"] + result["output_tokens"],
                 )
         except (json.JSONDecodeError, ValueError):
             self.logger.warning("[%s] Failed to parse reflection response", self.role)
 
-        return ReflectionResult(passed=True, reflection_model=model, reflection_tokens=result.get("output_tokens", 0))
+        return ReflectionResult(passed=True, reflection_model=used_model, reflection_tokens=result.get("output_tokens", 0))
 
     def build_envelope(
         self,
