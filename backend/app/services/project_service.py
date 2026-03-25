@@ -87,6 +87,7 @@ def delete_project(project_id: str) -> None:
     """Delete a project and all related data."""
     db = get_db()
     # Delete in dependency order
+    db.execute("DELETE FROM diagnostic_events WHERE project_id = ?", (project_id,))
     db.execute("DELETE FROM audit_log WHERE project_id = ?", (project_id,))
     db.execute("DELETE FROM author_feedback WHERE project_id = ?", (project_id,))
     db.execute("DELETE FROM quality_scores WHERE project_id = ?", (project_id,))

@@ -346,6 +346,9 @@ Respond with the JSON structure from your system prompt."""
             # Sanitize quadrantChart: strip parentheses and slashes from labels/points
             if "quadrantChart" in mermaid:
                 mermaid = self._sanitize_quadrant(mermaid)
+            # Sanitize journey: colons in section names break the parser
+            if mermaid.strip().startswith("journey"):
+                mermaid = self._sanitize_journey(mermaid)
             # Sanitize sankey-beta: replace unicode arrows with ASCII
             if "sankey-beta" in mermaid:
                 mermaid = mermaid.replace("\u2192", "->").replace("\u2190", "<-")
@@ -387,6 +390,27 @@ Respond with the JSON structure from your system prompt."""
             target_agent=AgentRole.CRITICAL_REVIEWER,
             reflection_result=reflection,
         )
+
+    def _sanitize_journey(self, mermaid: str) -> str:
+        """Sanitize journey diagram: colons in section names break the parser.
+
+        Mermaid journey syntax: `section Name` (no colons allowed in section names)
+        Tasks use colons for scores: `Task name: 5: Actor1, Actor2`
+        The LLM often generates `section Phase 1: Excitement` which the parser
+        reads as a task, not a section.
+        """
+        lines = mermaid.split("\n")
+        sanitized = []
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith("section "):
+                indent = line[:len(line) - len(line.lstrip())]
+                section_text = stripped[len("section "):]
+                # Replace colons with dashes in section names
+                section_text = section_text.replace(":", " -")
+                line = f"{indent}section {section_text}"
+            sanitized.append(line)
+        return "\n".join(sanitized)
 
     def _sanitize_quadrant(self, mermaid: str) -> str:
         """Sanitize quadrantChart code to remove characters that break the parser.
