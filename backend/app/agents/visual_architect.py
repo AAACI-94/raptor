@@ -163,20 +163,48 @@ journey
 2. Use double quotes around labels with spaces: `A["My Label"]`
 3. For subgraph labels with spaces, use quotes: `subgraph sg1["My Subgraph"]`
 4. Avoid special characters in node IDs (use alphanumeric + underscores only)
-5. Every diagram must be syntactically valid and renderable by mermaid.ink
+5. For sankey-beta: use only ASCII characters in node names (no unicode arrows like →; use -> in text)
+6. Keep node labels concise: max 3-4 lines per node. If more detail is needed, split into sub-nodes.
+7. Every diagram MUST be syntactically valid Mermaid that renders without errors.
+
+## PROFESSIONAL STYLING RULES
+The rendering engine applies a professional blue/slate theme automatically. Your job is to write
+clean, well-structured Mermaid code. The theme handles colors, fonts, and spacing.
+
+For flowcharts, use explicit style classes ONLY for semantic meaning:
+- Threat/attack nodes: `style NodeId fill:#fee2e2,stroke:#dc2626,color:#991b1b` (red)
+- Defense/control nodes: `style NodeId fill:#dcfce7,stroke:#16a34a,color:#166534` (green)
+- Warning/attention nodes: `style NodeId fill:#fef3c7,stroke:#d97706,color:#92400e` (amber)
+- Neutral/info nodes: leave unstyled (theme handles it)
+- Highlight/callout nodes: `style NodeId fill:#dbeafe,stroke:#2563eb,color:#1e40af` (blue)
+
+For subgraphs representing trust boundaries or zones:
+```
+subgraph zone1["Trusted Zone"]
+    style zone1 fill:#f0fdf4,stroke:#86efac,stroke-width:2px
+```
+
+Do NOT:
+- Over-style with inline colors on every node (let the theme work)
+- Use garish or clashing colors
+- Mix multiple color systems in one diagram
+- Add decorative styling that doesn't carry meaning
+- Use default Mermaid class names like :::classDef (they conflict with theme)
 
 ## VENUE ADAPTATION
-- **Academic (IEEE, ACM, USENIX)**: Formal notation, precise labels, grayscale-safe, numbered captions. Prefer: classDiagram, sequenceDiagram, xychart, quadrantChart.
-- **Practitioner (SANS, CSA)**: Actionable diagrams, color-coded severity. Before/after comparisons. Prefer: flowchart, radar-beta, xychart, mindmap.
-- **Industry (Dark Reading)**: Simple, one takeaway per figure. Prefer: pie, xychart bar, simple flowchart.
-- **Self-published (LinkedIn)**: Eye-catching, shareable. Prefer: quadrantChart, pie, mindmap, simple radar.
+- **Academic (IEEE, ACM, USENIX)**: Formal, minimal styling. Let the theme handle colors. Use precise labels. Number figure references. Prefer classDiagram, sequenceDiagram, xychart, quadrantChart.
+- **Practitioner (SANS, CSA)**: Use the red/green/amber semantic colors above for threat/defense/warning. Before/after comparisons. Implementation detail in nodes. Prefer flowchart, xychart, mindmap, quadrantChart.
+- **Industry (Dark Reading)**: Minimal nodes, one takeaway per figure. Clean and simple. Prefer pie, xychart bar, simple flowchart.
+- **Self-published (LinkedIn)**: Clean, modern look. Minimal text per node. Prefer quadrantChart, pie, mindmap.
 
-## CYBERSECURITY CONVENTIONS
-- Red/warm colors for threats, blue/cool for defenses
-- Dashed lines for potential/optional, solid for confirmed
-- Trust boundaries as labeled subgraphs
-- MITRE ATT&CK technique IDs where relevant
-- Detection points marked in defense diagrams
+## CYBERSECURITY DIAGRAM CONVENTIONS
+- Red nodes/paths for threats and attack vectors
+- Green nodes/paths for defenses and controls
+- Amber nodes for warnings, decision points, or attention areas
+- Dashed lines (`-.->`) for potential/optional flows, solid (`-->`) for confirmed
+- Trust boundaries as styled subgraphs with green borders
+- MITRE ATT&CK technique IDs (e.g., T1059) on relevant nodes/edges where applicable
+- Detection points marked with a distinctive style in defense diagrams
 
 ## OUTPUT FORMAT
 Respond with valid JSON:

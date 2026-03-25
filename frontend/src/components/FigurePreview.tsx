@@ -3,18 +3,130 @@ import { Image, AlertCircle, Copy, CheckCircle2, ChevronDown, ChevronRight } fro
 import mermaid from 'mermaid';
 import { api } from '../api/client';
 
-// Initialize mermaid once
+// Professional Mermaid theme: clean, publication-quality diagrams
 let mermaidInitialized = false;
 function ensureMermaidInit() {
   if (!mermaidInitialized) {
     mermaid.initialize({
       startOnLoad: false,
-      theme: 'default',
+      theme: 'base',
       securityLevel: 'loose',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
-      sequence: { useMaxWidth: true },
-      mindmap: { useMaxWidth: true },
+      fontFamily: '"Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+      themeVariables: {
+        // Core palette: professional blue/slate
+        primaryColor: '#e8f0fe',
+        primaryTextColor: '#1a1a2e',
+        primaryBorderColor: '#4a6fa5',
+        secondaryColor: '#f0f4f8',
+        secondaryTextColor: '#2d3748',
+        secondaryBorderColor: '#90a4ae',
+        tertiaryColor: '#fafbfc',
+        tertiaryTextColor: '#374151',
+        tertiaryBorderColor: '#b0bec5',
+
+        // Lines and text
+        lineColor: '#64748b',
+        textColor: '#1e293b',
+        mainBkg: '#f8fafc',
+        nodeBorder: '#4a6fa5',
+        nodeTextColor: '#1e293b',
+
+        // Cluster/subgraph
+        clusterBkg: '#f1f5f9',
+        clusterBorder: '#94a3b8',
+        titleColor: '#0f172a',
+
+        // Notes
+        noteBkgColor: '#fefce8',
+        noteTextColor: '#713f12',
+        noteBorderColor: '#facc15',
+
+        // Sequence diagram
+        actorBkg: '#e8f0fe',
+        actorBorder: '#4a6fa5',
+        actorTextColor: '#1e293b',
+        actorLineColor: '#94a3b8',
+        signalColor: '#334155',
+        signalTextColor: '#1e293b',
+        labelBoxBkgColor: '#f8fafc',
+        labelBoxBorderColor: '#94a3b8',
+        labelTextColor: '#475569',
+        loopTextColor: '#475569',
+        activationBorderColor: '#4a6fa5',
+        activationBkgColor: '#dbeafe',
+
+        // Pie chart
+        pie1: '#3b82f6',
+        pie2: '#10b981',
+        pie3: '#f59e0b',
+        pie4: '#ef4444',
+        pie5: '#8b5cf6',
+        pie6: '#06b6d4',
+        pie7: '#f97316',
+        pieStrokeColor: '#ffffff',
+        pieStrokeWidth: '2px',
+        pieTitleTextColor: '#0f172a',
+        pieSectionTextColor: '#ffffff',
+
+        // XY chart
+        xyChart: {
+          titleColor: '#0f172a',
+          xAxisLabelColor: '#475569',
+          yAxisLabelColor: '#475569',
+          xAxisLineColor: '#cbd5e1',
+          yAxisLineColor: '#cbd5e1',
+          plotColorPalette: '#3b82f6, #10b981, #f59e0b, #ef4444, #8b5cf6',
+        },
+
+        // Quadrant
+        quadrant1Fill: '#dbeafe',
+        quadrant2Fill: '#fef3c7',
+        quadrant3Fill: '#f1f5f9',
+        quadrant4Fill: '#dcfce7',
+        quadrant1TextFill: '#1e40af',
+        quadrant2TextFill: '#92400e',
+        quadrant3TextFill: '#475569',
+        quadrant4TextFill: '#166534',
+        quadrantPointFill: '#1e293b',
+        quadrantPointTextFill: '#1e293b',
+        quadrantTitleFill: '#0f172a',
+        quadrantExternalBorderStrokeFill: '#94a3b8',
+        quadrantInternalBorderStrokeFill: '#cbd5e1',
+        quadrantXAxisTextFill: '#475569',
+        quadrantYAxisTextFill: '#475569',
+
+        // Font sizes
+        fontSize: '14px',
+      },
+      flowchart: {
+        useMaxWidth: true,
+        htmlLabels: true,
+        curve: 'basis',
+        padding: 16,
+        nodeSpacing: 50,
+        rankSpacing: 60,
+        diagramPadding: 16,
+        wrappingWidth: 200,
+      },
+      sequence: {
+        useMaxWidth: true,
+        diagramMarginX: 16,
+        diagramMarginY: 16,
+        actorMargin: 80,
+        width: 180,
+        height: 50,
+        boxMargin: 8,
+        boxTextMargin: 5,
+        noteMargin: 12,
+        messageMargin: 40,
+        messageAlign: 'center',
+        mirrorActors: true,
+        wrap: true,
+      },
+      mindmap: {
+        useMaxWidth: true,
+        padding: 16,
+      },
     });
     mermaidInitialized = true;
   }
@@ -163,9 +275,11 @@ function FigureCard({ figure }: { figure: Figure }) {
         </div>
       </div>
 
-      {/* Mermaid diagram rendered via mermaid.ink */}
-      <div className="p-4 bg-white dark:bg-gray-800 flex justify-center">
-        <MermaidRenderer code={figure.mermaid} />
+      {/* Rendered diagram */}
+      <div className="px-6 py-5 bg-white dark:bg-gray-800 flex justify-center border-b border-gray-100 dark:border-gray-700">
+        <div className="w-full max-w-4xl">
+          <MermaidRenderer code={figure.mermaid} />
+        </div>
       </div>
 
       {/* Caption */}
