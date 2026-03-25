@@ -204,5 +204,83 @@ class Observatory:
         ]
 
 
+    def get_diagnostic_events(self, project_id: str) -> list[dict]:
+        """Get diagnostic events for a project."""
+        db = get_db()
+        rows = db.execute(
+            """SELECT id, correlation_id, event_type, severity, agent_role,
+                      error_class, error_message, diagnosis, remediation_action,
+                      remediation_attempt, remediation_success, duration_ms, timestamp
+               FROM diagnostic_events WHERE project_id = ?
+               ORDER BY timestamp DESC""",
+            (project_id,),
+        ).fetchall()
+
+        return [
+            {
+                "id": r["id"],
+                "correlation_id": r["correlation_id"],
+                "event_type": r["event_type"],
+                "severity": r["severity"],
+                "agent_role": r["agent_role"],
+                "error_class": r["error_class"],
+                "error_message": r["error_message"][:200] if r["error_message"] else "",
+                "diagnosis": json.loads(r["diagnosis"]) if r["diagnosis"] else None,
+                "remediation_action": r["remediation_action"],
+                "remediation_attempt": r["remediation_attempt"],
+                "remediation_success": r["remediation_success"],
+                "duration_ms": r["duration_ms"],
+                "timestamp": r["timestamp"],
+            }
+            for r in rows
+        ]
+
+    def get_healing_stats(self) -> dict:
+        """Get aggregate self-healing statistics."""
+        db = get_db()
+
+        total = db.execute("SELECT COUNT(*) as cnt FROM diagnostic_events").fetchone()["cnt"]
+        if total == 0:
+            return {"total_events": 0, "auto_healed": 0, "escalated": 0, "success_rate": 0, "by_type": {}, "by_agent": {}}
+
+        auto_healed = db.execute(
+            "SELECT COUNT(*) as cnt FROM diagnostic_events WHERE event_type = 'remediation_success'"
+        ).fetchone()["cnt"]
+
+        escalated = db.execute(
+            "SELECT COUNT(*) as cnt FROM diagnostic_events WHERE event_type = 'user_escalation'"
+        ).fetchone()["cnt"]
+
+        failures = db.execute(
+            "SELECT COUNT(*) as cnt FROM diagnostic_events WHERE event_type = 'agent_failure'"
+        ).fetchone()["cnt"]
+
+        by_type = {}
+        rows = db.execute(
+            "SELECT event_type, COUNT(*) as cnt FROM diagnostic_events GROUP BY event_type"
+        ).fetchall()
+        for r in rows:
+            by_type[r["event_type"]] = r["cnt"]
+
+        by_agent = {}
+        rows = db.execute(
+            "SELECT agent_role, COUNT(*) as cnt FROM diagnostic_events WHERE event_type = 'agent_failure' GROUP BY agent_role"
+        ).fetchall()
+        for r in rows:
+            by_agent[r["agent_role"]] = r["cnt"]
+
+        success_rate = (auto_healed / failures * 100) if failures > 0 else 100
+
+        return {
+            "total_events": total,
+            "agent_failures": failures,
+            "auto_healed": auto_healed,
+            "escalated": escalated,
+            "success_rate": round(success_rate, 1),
+            "by_type": by_type,
+            "by_agent": by_agent,
+        }
+
+
 # Singleton
 observatory = Observatory()

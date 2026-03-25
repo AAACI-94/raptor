@@ -6,6 +6,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Workspace = lazy(() => import('./pages/Workspace'));
 const Observatory = lazy(() => import('./pages/Observatory'));
 const VenueManager = lazy(() => import('./pages/VenueManager'));
+const About = lazy(() => import('./pages/About'));
 
 function Loading() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
           <Route path="/observatory" element={<Observatory />} />
           <Route path="/observatory/:projectId" element={<Observatory />} />
           <Route path="/venues" element={<VenueManager />} />
+          <Route path="/about" element={<About />} />
         </Routes>
       </Suspense>
     </Layout>

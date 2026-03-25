@@ -193,8 +193,12 @@ class PipelineOrchestrator:
         })
 
         try:
-            # Execute the agent
-            envelope = await agent.execute(project, venue)
+            # Execute the agent (with Sentinel protection if enabled)
+            if settings.raptor_sentinel_enabled:
+                from app.services.pipeline.sentinel import sentinel
+                envelope = await sentinel.execute_with_protection(agent, project, venue, project_id)
+            else:
+                envelope = await agent.execute(project, venue)
 
             # Store the artifact
             artifact_service.store_artifact(envelope)

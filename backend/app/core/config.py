@@ -41,6 +41,14 @@ class Settings(BaseSettings):
     raptor_max_revision_cycles: int = 3
     raptor_reflection_enabled: bool = True
 
+    # Self-Healing
+    raptor_sentinel_enabled: bool = True
+    raptor_max_remediation_attempts: int = 3
+    raptor_diagnostic_timeout_s: int = 30
+    raptor_agent_timeout_s: int = 600
+    raptor_cost_anomaly_multiplier: float = 3.0
+    raptor_quality_min_threshold: float = 4.0
+
     model_config = {"env_prefix": "", "case_sensitive": False}
 
     def get_model_for_role(self, role: str) -> str:

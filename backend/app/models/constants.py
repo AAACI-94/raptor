@@ -84,6 +84,37 @@ class NDAMode(StrEnum):
     BLOCK = "block"
 
 
+class DiagnosticSeverity(StrEnum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+
+class RemediationAction(StrEnum):
+    RETRY = "retry"
+    RETRY_WITH_BACKOFF = "retry_with_backoff"
+    JSON_REPAIR = "json_repair"
+    SIMPLIFY_PROMPT = "simplify_prompt"
+    SWITCH_PROVIDER = "switch_provider"
+    REDUCE_INPUT = "reduce_input"
+    INCREASE_TIMEOUT = "increase_timeout"
+    INJECT_FEEDBACK = "inject_feedback"
+    ESCALATE_TO_USER = "escalate_to_user"
+
+
+class DiagnosticEventType(StrEnum):
+    AGENT_FAILURE = "agent_failure"
+    PARSE_FAILURE = "parse_failure"
+    PROVIDER_ERROR = "provider_error"
+    TIMEOUT = "timeout"
+    QUALITY_DEGRADATION = "quality_degradation"
+    COST_ANOMALY = "cost_anomaly"
+    REMEDIATION_SUCCESS = "remediation_success"
+    REMEDIATION_FAILED = "remediation_failed"
+    USER_ESCALATION = "user_escalation"
+
+
 # Valid pipeline transitions
 VALID_TRANSITIONS: dict[ProjectStatus, list[ProjectStatus]] = {
     ProjectStatus.TOPIC_SELECTED: [ProjectStatus.RESEARCHING],

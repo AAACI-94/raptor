@@ -51,3 +51,15 @@ def get_insights(venue_id: str | None = Query(None)):
 def get_rubric_history(venue_id: str):
     """Get rubric adjustment history for a venue."""
     return observatory.get_rubric_history(venue_id)
+
+
+@router.get("/diagnostics/{project_id}")
+def get_diagnostics(project_id: str):
+    """Get diagnostic events for a project."""
+    return observatory.get_diagnostic_events(project_id)
+
+
+@router.get("/healing-stats")
+def get_healing_stats():
+    """Get aggregate self-healing statistics."""
+    return observatory.get_healing_stats()

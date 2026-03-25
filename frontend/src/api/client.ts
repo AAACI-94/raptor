@@ -61,6 +61,10 @@ export const api = {
   getPreview: (projectId: string) => request<any>(`/projects/${projectId}/preview`),
   getFigures: (projectId: string) => request<any>(`/projects/${projectId}/figures`),
 
+  // Diagnostics
+  getDiagnostics: (projectId: string) => request<any>(`/observatory/diagnostics/${projectId}`),
+  getHealingStats: () => request<any>(`/observatory/healing-stats`),
+
   // Health
   health: () => request<any>('/health'),
 };

@@ -168,3 +168,27 @@ CREATE TABLE IF NOT EXISTS audit_log (
 );
 
 CREATE INDEX IF NOT EXISTS idx_audit_project ON audit_log(project_id);
+
+-- Self-Healing: Diagnostic Events
+CREATE TABLE IF NOT EXISTS diagnostic_events (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL REFERENCES projects(id),
+    correlation_id TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    severity TEXT NOT NULL,
+    agent_role TEXT NOT NULL,
+    pipeline_stage TEXT,
+    error_class TEXT,
+    error_message TEXT,
+    diagnosis TEXT,  -- JSON: root_cause, classification, recommended_actions
+    remediation_action TEXT,
+    remediation_attempt INTEGER DEFAULT 0,
+    remediation_success BOOLEAN,
+    context_snapshot TEXT,  -- JSON: input summary, output preview, model, tokens
+    duration_ms INTEGER,
+    timestamp TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_diag_project ON diagnostic_events(project_id);
+CREATE INDEX IF NOT EXISTS idx_diag_correlation ON diagnostic_events(correlation_id);
+CREATE INDEX IF NOT EXISTS idx_diag_type ON diagnostic_events(event_type);
