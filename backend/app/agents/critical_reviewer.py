@@ -87,6 +87,41 @@ class CriticalReviewer(BaseAgent):
         # Get research for verification
         research = artifact_service.get_latest_artifact(project.id, ArtifactType.RESEARCH_PLAN)
 
+        # Pre-check: word count and section coverage validation
+        draft_sections = draft.payload.get("sections", [])
+        total_words = draft.payload.get("total_word_count", sum(s.get("word_count", 0) for s in draft_sections))
+        section_count = len(draft_sections)
+
+        structural_warnings = []
+        if venue and venue.profile_data.structural_template:
+            tmpl = venue.profile_data.structural_template
+            required_count = len(tmpl.required_sections)
+            if section_count < required_count:
+                structural_warnings.append(
+                    f"INCOMPLETE: Draft has {section_count} sections but venue requires {required_count}. "
+                    f"Missing sections must be written before this paper can pass review."
+                )
+            min_pages = tmpl.total_length_min_pages or 0
+            min_words = min_pages * 350  # ~350 words per page
+            if min_words > 0 and total_words < min_words:
+                structural_warnings.append(
+                    f"UNDERWEIGHT: Draft is {total_words} words but venue requires minimum "
+                    f"{min_pages} pages (~{min_words} words). Current draft is {total_words/min_words*100:.0f}% of minimum."
+                )
+
+            # Check individual section word counts
+            for req_section in tmpl.required_sections:
+                matching = [s for s in draft_sections if req_section.name.lower() in s.get("section_name", "").lower()]
+                if not matching:
+                    structural_warnings.append(f"MISSING SECTION: '{req_section.name}' is required but not present in draft.")
+                elif req_section.min_words:
+                    actual_words = matching[0].get("word_count", 0)
+                    if actual_words < req_section.min_words:
+                        structural_warnings.append(
+                            f"SHORT SECTION: '{req_section.name}' has {actual_words} words, "
+                            f"minimum is {req_section.min_words}."
+                        )
+
         # Build rubric context
         rubric_text = ""
         if venue and venue.profile_data.quality_rubric:
@@ -103,11 +138,24 @@ class CriticalReviewer(BaseAgent):
             persona = f"""Reviewer Persona: {rp.description}
 Common feedback patterns: {', '.join(rp.common_feedback_patterns)}"""
 
-        user_msg = f"""## Draft Content
+        # Build structural warnings block
+        warnings_block = ""
+        if structural_warnings:
+            warnings_block = "\n## STRUCTURAL WARNINGS (pre-check failures)\n" + "\n".join(f"- {w}" for w in structural_warnings)
+            warnings_block += "\nThese issues MUST be reflected in your completeness and rigor scores. A paper with missing required sections CANNOT pass review."
+
+        # Citation provenance warning
+        citation_warning = ""
+        if research and research.payload.get("citation_warning"):
+            citation_warning = f"\n## CITATION WARNING\n{research.payload['citation_warning']}"
+
+        user_msg = f"""## Draft Content ({total_words} words, {section_count} sections)
 {json.dumps(draft.payload, indent=2)[:8000]}
 
 ## Research Plan (for evidence verification)
 {json.dumps(research.payload.get('evidence_map', {}), indent=2)[:2000] if research else 'Not available'}
+{citation_warning}
+{warnings_block}
 
 ## Quality Rubric
 {rubric_text or 'Use general academic quality standards'}
@@ -123,6 +171,7 @@ Common feedback patterns: {', '.join(rp.common_feedback_patterns)}"""
 5. Make a clear recommendation: accept, revise, or reject
 6. Write reviewer commentary in the persona's voice
 7. If rejecting/revising, specify which agent should handle revisions
+8. Account for structural warnings in your completeness score
 
 Respond with the JSON structure from your system prompt."""
 

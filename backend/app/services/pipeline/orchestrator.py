@@ -199,10 +199,56 @@ class PipelineOrchestrator:
             # Store the artifact
             artifact_service.store_artifact(envelope)
 
-            # Transition to complete status
-            complete_status = self._get_complete_status(status)
-            if complete_status:
-                self._transition(project_id, complete_status)
+            # Determine next status based on agent output
+            if status == ProjectStatus.REVIEWING and envelope.rejection_context:
+                # Critical Reviewer recommended revise/reject: trigger revision loop
+                complete_status = ProjectStatus.REVISION_REQUESTED
+                cycles = project_service.increment_revision_cycles(project_id)
+                if cycles > settings.raptor_max_revision_cycles:
+                    # Max revisions reached: escalate to author
+                    await ws_manager.broadcast(project_id, {
+                        "event": "escalation",
+                        "message": f"Maximum revision cycles ({settings.raptor_max_revision_cycles}) reached after review rejection. Author intervention required.",
+                        "revision_cycles": cycles,
+                    })
+                    self._transition(project_id, complete_status)
+                    return {
+                        "status": "escalated",
+                        "agent": agent_role,
+                        "artifact_id": envelope.artifact_id,
+                        "revision_cycles": cycles,
+                        "rejection": envelope.rejection_context.model_dump(),
+                    }
+
+                # Send back for revision
+                target = envelope.rejection_context.target_for_revision
+                self._transition(project_id, complete_status,
+                                reason=f"Reviewer recommended revise (score: {envelope.quality_scores})")
+
+                # Determine which stage to re-run
+                revision_target = ProjectStatus.DRAFTING  # Default: re-draft
+                if target == "structure_architect":
+                    revision_target = ProjectStatus.STRUCTURING
+                elif target == "research_strategist":
+                    revision_target = ProjectStatus.RESEARCHING
+
+                self._transition(project_id, revision_target)
+
+                await ws_manager.broadcast(project_id, {
+                    "event": "revision_requested",
+                    "agent": agent_role,
+                    "target": target,
+                    "artifact_id": envelope.artifact_id,
+                    "failed_criteria": envelope.rejection_context.failed_criteria,
+                })
+
+                # Re-run the target stage
+                logger.info("[pipeline] Review rejected, re-running %s (cycle %d)", revision_target, cycles)
+                return await self._run_stage(project_id, revision_target)
+            else:
+                complete_status = self._get_complete_status(status)
+                if complete_status:
+                    self._transition(project_id, complete_status)
 
             # Broadcast completion
             await ws_manager.broadcast(project_id, {
