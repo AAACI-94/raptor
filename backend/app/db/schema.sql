@@ -11,6 +11,14 @@ CREATE TABLE IF NOT EXISTS projects (
     status TEXT NOT NULL DEFAULT 'TOPIC_SELECTED',
     nda_config TEXT,  -- JSON: sensitivity_level, mode, blocked_terms, generalization_rules
     revision_cycles INTEGER NOT NULL DEFAULT 0,
+    tags TEXT,  -- JSON array of strings: ["ai-governance", "prompt-injection"]
+    category TEXT,  -- research_paper, whitepaper, thought_leadership, framework, case_study, technical_guide
+    starred BOOLEAN NOT NULL DEFAULT FALSE,
+    abstract TEXT,  -- Short summary (~150 words), auto-extracted from production output
+    word_count INTEGER DEFAULT 0,
+    figure_count INTEGER DEFAULT 0,
+    quality_score REAL,  -- Composite quality score from review (weighted aggregate)
+    total_cost_usd REAL DEFAULT 0.0,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

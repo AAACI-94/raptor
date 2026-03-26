@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 
+const Library = lazy(() => import('./pages/Library'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Workspace = lazy(() => import('./pages/Workspace'));
 const Observatory = lazy(() => import('./pages/Observatory'));
@@ -21,7 +22,9 @@ export default function App() {
     <Layout>
       <Suspense fallback={<Loading />}>
         <Routes>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={<Library />} />
+          <Route path="/library" element={<Library />} />
+          <Route path="/new" element={<Dashboard />} />
           <Route path="/projects/:projectId" element={<Workspace />} />
           <Route path="/observatory" element={<Observatory />} />
           <Route path="/observatory/:projectId" element={<Observatory />} />

@@ -203,6 +203,9 @@ class PipelineOrchestrator:
             # Store the artifact
             artifact_service.store_artifact(envelope)
 
+            # Auto-populate library metadata based on which stage just completed
+            self._update_library_metadata(project_id, status, envelope)
+
             # Determine next status based on agent output
             if status == ProjectStatus.REVIEWING and envelope.rejection_context:
                 # Critical Reviewer recommended revise/reject: trigger revision loop
@@ -319,6 +322,57 @@ class PipelineOrchestrator:
             ProjectStatus.PRODUCING: ProjectStatus.PRODUCTION_COMPLETE,
         }
         return mapping.get(active_status)
+
+    def _update_library_metadata(self, project_id: str, status: ProjectStatus, envelope: Any) -> None:
+        """Auto-populate library metadata after each stage completes."""
+        try:
+            if status == ProjectStatus.RESEARCHING:
+                # Auto-tag from research output
+                project_service.auto_tag_from_research(project_id, envelope.payload)
+
+            elif status == ProjectStatus.PRODUCING:
+                # Extract abstract and update word/figure counts
+                abstract = project_service.auto_extract_abstract(project_id, envelope.payload)
+                word_count = envelope.payload.get("total_word_count", 0)
+                project_service.update_library_metadata(
+                    project_id,
+                    word_count=word_count,
+                )
+
+            elif status == ProjectStatus.ILLUSTRATING:
+                # Update figure count
+                figures = envelope.payload.get("figures", [])
+                project_service.update_library_metadata(
+                    project_id,
+                    figure_count=len(figures),
+                )
+
+            elif status == ProjectStatus.REVIEWING:
+                # Update quality score from review
+                scores = envelope.quality_scores
+                if scores:
+                    avg = sum(scores.values()) / len(scores)
+                    project_service.update_library_metadata(
+                        project_id,
+                        quality_score=round(avg, 1),
+                    )
+
+                # Update cost
+                try:
+                    cost_row = get_db().execute(
+                        "SELECT SUM(estimated_cost_usd) as total FROM token_usage WHERE project_id = ?",
+                        (project_id,),
+                    ).fetchone()
+                    if cost_row and cost_row["total"]:
+                        project_service.update_library_metadata(
+                            project_id,
+                            total_cost_usd=round(cost_row["total"], 4),
+                        )
+                except Exception:
+                    pass
+
+        except Exception as e:
+            logger.warning("[pipeline] Failed to update library metadata: %s", e)
 
     def _log_decision(self, project_id: str, agent: str, decision_type: str,
                      rationale: str, confidence: float = 0.0) -> None:

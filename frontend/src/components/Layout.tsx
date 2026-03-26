@@ -1,9 +1,10 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BookOpen, LayoutDashboard, BarChart3, Building2, Info } from 'lucide-react';
+import { BookOpen, Library, LayoutDashboard, BarChart3, Building2, Info, Plus } from 'lucide-react';
 
 const NAV_ITEMS = [
-  { path: '/', label: 'Projects', icon: LayoutDashboard },
+  { path: '/', label: 'Library', icon: Library },
+  { path: '/new', label: 'New Project', icon: Plus },
   { path: '/observatory', label: 'Observatory', icon: BarChart3 },
   { path: '/venues', label: 'Venues', icon: Building2 },
   { path: '/about', label: 'About', icon: Info },
