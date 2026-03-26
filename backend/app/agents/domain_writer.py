@@ -9,6 +9,7 @@ import logging
 from typing import Any
 
 from app.agents.base import BaseAgent
+from app.core.database import get_db
 from app.models.constants import AgentRole, ArtifactType
 from app.models.envelope import ArtifactMetadata
 from app.services import artifact_service
@@ -86,7 +87,16 @@ Required changes:
         if not outline_sections:
             raise ValueError("Outline has no sections. Re-run structure stage.")
 
-        sources_json = json.dumps(research.payload.get("sources", []), indent=2)[:4000] if research else "No sources"
+        all_sources = research.payload.get("sources", []) if research else []
+
+        # Build a source lookup by title for efficient filtering
+        source_by_title = {}
+        for s in all_sources:
+            title = s.get("title", "").lower().strip()
+            source_by_title[title] = s
+
+        # Load learned prompt patterns for this venue (cross-project learning)
+        learned_guidance = self._get_learned_patterns(venue)
 
         # Draft each section individually
         all_sections = []
@@ -101,12 +111,46 @@ Required changes:
             min_words = section_spec.get("min_words", 300)
             max_words = section_spec.get("max_words", 1000)
             criteria = section_spec.get("acceptance_criteria", [])
-            assigned_sources = section_spec.get("assigned_sources", [])
+            assigned_source_titles = section_spec.get("assigned_sources", [])
+
+            # Filter sources: only send assigned sources for this section
+            # Falls back to all sources if no assignments or no matches
+            section_sources = []
+            if assigned_source_titles:
+                for title in assigned_source_titles:
+                    match = source_by_title.get(title.lower().strip())
+                    if match:
+                        section_sources.append(match)
+                    else:
+                        # Fuzzy match: check if any source title contains this string
+                        for st, s in source_by_title.items():
+                            if title.lower() in st or st in title.lower():
+                                section_sources.append(s)
+                                break
+
+            # If no matches found, send top 3 most relevant sources
+            if not section_sources:
+                section_sources = sorted(
+                    all_sources,
+                    key=lambda s: s.get("relevance_score", 0),
+                    reverse=True,
+                )[:3]
+
+            # Condense sources: title + key findings only (not full metadata)
+            condensed_sources = []
+            for idx, s in enumerate(section_sources):
+                condensed_sources.append(
+                    f"[{idx+1}] {s.get('title', 'Untitled')}\n"
+                    f"    Type: {s.get('source_type', '?')} | "
+                    f"Relevance: {s.get('relevance_score', '?')}\n"
+                    f"    Key findings: {s.get('key_findings', s.get('content_summary', 'N/A'))}"
+                )
+            sources_text = "\n".join(condensed_sources) if condensed_sources else "No specific sources assigned."
 
             pct = int(10 + (80 * i / len(outline_sections)))
             await self.broadcast_progress(
                 project.id,
-                f"Drafting section {i+1}/{len(outline_sections)}: {section_name}",
+                f"Drafting section {i+1}/{len(outline_sections)}: {section_name} ({len(section_sources)} sources)",
                 pct,
             )
 
@@ -116,11 +160,8 @@ Target word count: {min_words}-{max_words} words (MINIMUM {min_words} words)
 Acceptance criteria:
 {chr(10).join(f'- {c}' for c in criteria) if criteria else '- Write substantive content for this section'}
 
-## Assigned Sources
-{json.dumps(assigned_sources, indent=2) if assigned_sources else 'Use all available sources'}
-
-## All Research Sources
-{sources_json}
+## Sources for This Section ({len(section_sources)} assigned)
+{sources_text}
 
 ## Author Context
 {project.author_context or 'None provided'}
@@ -133,11 +174,11 @@ Acceptance criteria:
 
 ## Prior Sections (for continuity)
 {prior_sections_summary or 'This is the first section.'}
-{revision_guidance}
+{revision_guidance}{learned_guidance}
 ## Instructions
 Write the COMPLETE content for the "{section_name}" section.
 - Hit the target word count ({min_words}-{max_words} words). This is critical.
-- Include inline citations [1], [2], etc.
+- Include inline citations [1], [2], etc. referencing the sources above.
 - Flag confidence: [WELL-SUPPORTED], [PARTIALLY-SUPPORTED], [AUTHOR-ASSERTION]
 - Flag NDA-sensitive content with [NDA-FLAG]
 - Write publication-ready prose, not an outline or summary
@@ -224,6 +265,75 @@ Respond with the JSON structure from your system prompt."""
             cf = venue.profile_data.citation_format
             return f"Citation style: {cf.style} ({cf.format_spec}). Minimum {cf.minimum_references} references."
         return "Use numbered inline citations [1], [2], etc."
+
+    def _get_learned_patterns(self, venue: Any) -> str:
+        """Extract recurring revision requirements from past reviews for this venue.
+
+        Cross-project learning: if the Reviewer consistently asks for the same thing
+        (e.g., "add confidence intervals"), inject that as a permanent instruction
+        so future drafts avoid the same mistakes.
+        """
+        if not venue:
+            return ""
+
+        try:
+            db = get_db()
+            # Find revision requirements from past reviews for this venue type
+            rows = db.execute(
+                """SELECT a.envelope FROM artifacts a
+                   JOIN projects p ON a.project_id = p.id
+                   WHERE a.artifact_type = 'review'
+                   AND a.status = 'rejected'
+                   AND p.venue_profile_id = ?
+                   ORDER BY a.created_at DESC LIMIT 10""",
+                (venue.id,),
+            ).fetchall()
+
+            if not rows:
+                return ""
+
+            # Extract revision requirements from past reviews
+            requirement_counts: dict[str, int] = {}
+            for row in rows:
+                import json as _json
+                try:
+                    envelope = _json.loads(row["envelope"])
+                    payload = envelope.get("payload", {})
+                    for dim in payload.get("dimension_scores", []):
+                        for req in dim.get("revision_requirements", []):
+                            # Normalize: lowercase, strip specific references
+                            normalized = req.lower().strip()
+                            # Group similar patterns
+                            for pattern_key in [
+                                "confidence interval", "sample size", "methodology",
+                                "empirical data", "case study", "worked example",
+                                "implementation detail", "before/after", "metrics",
+                                "reproducible", "tool", "command", "step-by-step",
+                                "formal definition", "threat model", "evaluation",
+                            ]:
+                                if pattern_key in normalized:
+                                    requirement_counts[pattern_key] = requirement_counts.get(pattern_key, 0) + 1
+                                    break
+                except Exception:
+                    continue
+
+            # Only surface patterns that appear in 2+ reviews (consistent feedback)
+            recurring = [(pattern, count) for pattern, count in requirement_counts.items() if count >= 2]
+            if not recurring:
+                return ""
+
+            recurring.sort(key=lambda x: -x[1])
+            patterns = [f"- Include {p} (requested in {c} prior reviews)" for p, c in recurring[:5]]
+
+            return f"""
+## Learned Quality Patterns for {venue.display_name}
+Based on {len(rows)} past reviews, these elements are consistently requested:
+{chr(10).join(patterns)}
+Address these proactively in your draft to avoid revision cycles.
+"""
+        except Exception as e:
+            self.logger.warning("[writer] Failed to load learned patterns: %s", e)
+            return ""
 
     def _parse_section(self, content: str, fallback_name: str) -> dict:
         """Parse a single section's JSON output."""

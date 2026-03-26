@@ -149,11 +149,35 @@ Common feedback patterns: {', '.join(rp.common_feedback_patterns)}"""
         if research and research.payload.get("citation_warning"):
             citation_warning = f"\n## CITATION WARNING\n{research.payload['citation_warning']}"
 
-        user_msg = f"""## Draft Content ({total_words} words, {section_count} sections)
-{json.dumps(draft.payload, indent=2)[:8000]}
+        # Build condensed draft: prose only, no JSON metadata overhead
+        # This lets the Reviewer see the FULL paper, not a truncated JSON blob
+        condensed_sections = []
+        for s in draft_sections:
+            name = s.get("section_name", "Untitled")
+            content = s.get("content", "")
+            word_count = s.get("word_count", len(content.split()))
+            citations = s.get("citations_used", [])
+            flags = s.get("confidence_flags", {})
+            condensed_sections.append(
+                f"### {name} ({word_count} words, {len(citations)} citations, "
+                f"flags: {flags.get('well_supported', 0)}W/{flags.get('partially_supported', 0)}P/{flags.get('author_assertion', 0)}A)\n\n{content}"
+            )
+        full_draft_text = "\n\n".join(condensed_sections)
 
-## Research Plan (for evidence verification)
-{json.dumps(research.payload.get('evidence_map', {}), indent=2)[:2000] if research else 'Not available'}
+        # Evidence map condensed (just claim -> source title mappings)
+        evidence_summary = ""
+        if research:
+            ev_map = research.payload.get("evidence_map", {})
+            if ev_map:
+                evidence_lines = [f"- {claim}: {', '.join(sources[:3])}" for claim, sources in list(ev_map.items())[:15]]
+                evidence_summary = "\n".join(evidence_lines)
+
+        user_msg = f"""## Draft Content ({total_words} words, {section_count} sections)
+
+{full_draft_text}
+
+## Evidence Map (claim -> supporting sources)
+{evidence_summary or 'Not available'}
 {citation_warning}
 {warnings_block}
 
