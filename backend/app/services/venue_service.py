@@ -120,11 +120,12 @@ def _row_to_venue(row) -> VenueProfile:
 
 _SANS_RUBRIC = QualityRubric(
     dimensions=[
-        RubricDimension(name="novelty", description="Does this contribute something new to the field?", weight=0.10, min_passing=5),
-        RubricDimension(name="rigor", description="Is the methodology sound and reproducible?", weight=0.15, min_passing=6),
-        RubricDimension(name="practitioner_utility", description="Can a practitioner apply this Monday morning?", weight=0.30, min_passing=7),
-        RubricDimension(name="evidence_quality", description="Are claims supported by credible evidence?", weight=0.20, min_passing=6),
-        RubricDimension(name="accessibility", description="Is the writing clear and jargon-appropriate?", weight=0.15, min_passing=6),
+        RubricDimension(name="novelty", description="Does this contribute something new to the field?", weight=0.08, min_passing=5),
+        RubricDimension(name="rigor", description="Is the methodology sound and reproducible?", weight=0.12, min_passing=6),
+        RubricDimension(name="practitioner_utility", description="Can a practitioner apply this Monday morning?", weight=0.25, min_passing=7),
+        RubricDimension(name="evidence_quality", description="Are claims supported by 2+ independent sources? Are sources primary or secondary?", weight=0.18, min_passing=6),
+        RubricDimension(name="argumentative_rigor", description="Are causal claims logically valid? Do arguments have warrants, not just claims+data? Are fallacies absent? Are counterarguments addressed?", weight=0.15, min_passing=6),
+        RubricDimension(name="accessibility", description="Is the writing clear and jargon-appropriate?", weight=0.12, min_passing=6),
         RubricDimension(name="completeness", description="Are all aspects of the topic adequately covered?", weight=0.10, min_passing=5),
     ],
     passing_threshold=7.0,
@@ -132,9 +133,10 @@ _SANS_RUBRIC = QualityRubric(
 
 _IEEE_RUBRIC = QualityRubric(
     dimensions=[
-        RubricDimension(name="novelty", description="Is the contribution genuinely novel?", weight=0.25, min_passing=7),
-        RubricDimension(name="rigor", description="Is the evaluation methodology sound?", weight=0.25, min_passing=7),
-        RubricDimension(name="evidence_quality", description="Is the related work comprehensive?", weight=0.20, min_passing=6),
+        RubricDimension(name="novelty", description="Is the contribution genuinely novel?", weight=0.20, min_passing=7),
+        RubricDimension(name="rigor", description="Is the evaluation methodology sound?", weight=0.20, min_passing=7),
+        RubricDimension(name="argumentative_rigor", description="Are causal claims valid (mechanism stated, confounds addressed, comparison group present)? Are logical fallacies absent? Do arguments follow Toulmin structure?", weight=0.15, min_passing=7),
+        RubricDimension(name="evidence_quality", description="Is related work comprehensive? Are sources primary? Does the two-source rule hold?", weight=0.15, min_passing=6),
         RubricDimension(name="technical_depth", description="Is the technical contribution deep enough?", weight=0.15, min_passing=6),
         RubricDimension(name="accessibility", description="Is the writing clear for the audience?", weight=0.10, min_passing=5),
         RubricDimension(name="completeness", description="Are evaluation and discussion thorough?", weight=0.05, min_passing=5),
@@ -144,9 +146,10 @@ _IEEE_RUBRIC = QualityRubric(
 
 _INDUSTRY_RUBRIC = QualityRubric(
     dimensions=[
-        RubricDimension(name="accessibility", description="Will this engage a broad audience without being shallow?", weight=0.30, min_passing=7),
-        RubricDimension(name="practitioner_utility", description="Does it provide actionable takeaways?", weight=0.25, min_passing=6),
-        RubricDimension(name="evidence_quality", description="Is the expertise credible?", weight=0.20, min_passing=6),
+        RubricDimension(name="accessibility", description="Will this engage a broad audience without being shallow?", weight=0.25, min_passing=7),
+        RubricDimension(name="practitioner_utility", description="Does it provide actionable takeaways?", weight=0.20, min_passing=6),
+        RubricDimension(name="evidence_quality", description="Is the expertise credible? Are sources identified?", weight=0.15, min_passing=6),
+        RubricDimension(name="argumentative_rigor", description="Are claims logically sound? Are causal arguments valid? Are obvious fallacies absent?", weight=0.15, min_passing=5),
         RubricDimension(name="novelty", description="Does it offer a fresh perspective?", weight=0.15, min_passing=5),
         RubricDimension(name="completeness", description="Is the topic adequately covered for the length?", weight=0.10, min_passing=5),
     ],
@@ -155,10 +158,11 @@ _INDUSTRY_RUBRIC = QualityRubric(
 
 _SELF_PUB_RUBRIC = QualityRubric(
     dimensions=[
-        RubricDimension(name="accessibility", description="Is the writing engaging and clear?", weight=0.25, min_passing=6),
-        RubricDimension(name="practitioner_utility", description="Does it provide value to the reader?", weight=0.25, min_passing=6),
+        RubricDimension(name="accessibility", description="Is the writing engaging and clear?", weight=0.20, min_passing=6),
+        RubricDimension(name="practitioner_utility", description="Does it provide value to the reader?", weight=0.20, min_passing=6),
         RubricDimension(name="evidence_quality", description="Are assertions backed by evidence?", weight=0.20, min_passing=5),
-        RubricDimension(name="novelty", description="Does it offer a unique viewpoint?", weight=0.20, min_passing=5),
+        RubricDimension(name="argumentative_rigor", description="Are claims logically coherent? No obvious fallacies? Does the argument hold together?", weight=0.15, min_passing=5),
+        RubricDimension(name="novelty", description="Does it offer a unique viewpoint?", weight=0.15, min_passing=5),
         RubricDimension(name="completeness", description="Does it have a clear thesis-evidence-conclusion arc?", weight=0.10, min_passing=5),
     ],
     passing_threshold=6.0,

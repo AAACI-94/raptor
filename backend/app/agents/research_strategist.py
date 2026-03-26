@@ -34,18 +34,30 @@ You must output valid JSON with this structure:
       "title": "Source title",
       "url": "URL if available",
       "source_type": "peer_reviewed|industry_report|vendor_research|standards_body|blog|preprint",
+      "source_tier": "primary|secondary|tertiary",
       "relevance_score": 0.0-1.0,
       "authority_score": 0.0-1.0,
       "key_findings": "What this source contributes",
-      "claims_supported": ["claim1", "claim2"]
+      "claims_supported": ["claim1", "claim2"],
+      "potential_bias": "None|vendor_affiliated|self_published|advocacy_org",
+      "coi_flag": false
     }
   ],
   "evidence_map": {
     "claim_text": ["source_title_1", "source_title_2"]
   },
+  "two_source_coverage": "How many claims have 2+ independent sources vs single-source claims",
   "venue_alignment": "How this research plan aligns with the target venue's expectations",
   "nda_flags": ["any potentially sensitive content areas"]
 }
+
+SOURCE CLASSIFICATION RULES (journalistic standards):
+- PRIMARY: Original research, raw data, standards documents (NIST, ISO, OWASP), court filings, regulatory text
+- SECONDARY: Reports about primary research (analyst reports, news coverage of studies, vendor whitepapers citing others)
+- TERTIARY: Summaries of summaries (Wikipedia, textbooks, blog posts citing reports)
+- Aim for at least 60% primary sources. Flag if falling below 40%.
+- BIAS DETECTION: Flag vendor_affiliated sources that recommend the vendor's own products.
+- TWO-SOURCE RULE: For each major claim in the evidence_map, identify at least 2 independent sources. Flag claims with only 1 source.
 
 REJECTION CRITERIA (reject the input if any apply):
 - Topic has insufficient novelty for the target venue
