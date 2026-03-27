@@ -91,7 +91,7 @@ Output valid JSON:
 """
 
 REFLECTION_PROMPT = """Is every factual claim attributed to a source? Does the tone match
-venue expectations? Would a domain expert find any claims unsupported or misleading?
+publication target expectations? Would a domain expert find any claims unsupported or misleading?
 Is the section at least the minimum word count?"""
 
 
@@ -312,7 +312,7 @@ Respond with the JSON structure from your system prompt."""
         return "Use numbered inline citations [1], [2], etc."
 
     def _get_learned_patterns(self, venue: Any) -> str:
-        """Extract recurring revision requirements from past reviews for this venue.
+        """Extract recurring revision requirements from past reviews for this publication target.
 
         Cross-project learning: if the Reviewer consistently asks for the same thing
         (e.g., "add confidence intervals"), inject that as a permanent instruction

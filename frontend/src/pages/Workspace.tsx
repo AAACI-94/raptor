@@ -8,7 +8,7 @@ import FigurePreview from '../components/FigurePreview';
 import type { Project, PipelineStatus, PipelineEvent } from '../types';
 
 const STAGES = [
-  { key: 'TOPIC_SELECTED', label: 'Topic & Venue', agent: null },
+  { key: 'TOPIC_SELECTED', label: 'Topic & Target', agent: null },
   { key: 'RESEARCHING', label: 'Research', agent: 'research_strategist' },
   { key: 'STRUCTURING', label: 'Structure', agent: 'structure_architect' },
   { key: 'DRAFTING', label: 'Drafting', agent: 'domain_writer' },

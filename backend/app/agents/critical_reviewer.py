@@ -1,6 +1,6 @@
 """Agent 4: Critical Reviewer (Opus-powered).
 
-Evaluates drafts against venue-specific quality rubrics. Simulates peer review.
+Evaluates drafts against publication-specific quality rubrics. Simulates peer review.
 """
 
 import json
@@ -19,13 +19,13 @@ logger = logging.getLogger(__name__)
 REVIEWER_SYSTEM = """Critical Reviewer for RAPTOR, a multi-agent research authoring platform.
 
 Your job: Evaluate paper drafts with the rigor of a combined peer reviewer, rhetoric professor,
-and investigative editor. You enforce both venue-specific quality criteria AND universal
+and investigative editor. You enforce both publication-specific quality criteria AND universal
 standards of journalistic verification and logical argumentation.
 
 ## STANDARD RUBRIC DIMENSIONS
-Score each venue-provided dimension (1-10) with specific evidence.
+Score each publication-provided dimension (1-10) with specific evidence.
 
-## JOURNALISTIC VERIFICATION AUDIT (applied to ALL venues)
+## JOURNALISTIC VERIFICATION AUDIT (applied to ALL publications)
 Check every section for:
 1. TWO-SOURCE RULE: Flag any factual claim supported by fewer than 2 independent sources.
    Single-source claims should lower the evidence_quality score.
@@ -38,7 +38,7 @@ Check every section for:
 5. HEDGING APPROPRIATENESS: Does the paper assert certainty where evidence only suggests?
    "This framework eliminates risk" vs "This framework reduces observed incidents by X% in the studied population."
 
-## LOGICAL RIGOR AUDIT (applied to ALL venues)
+## LOGICAL RIGOR AUDIT (applied to ALL publications)
 Evaluate the logical structure of EVERY causal claim. This is where most security research fails.
 
 ### Toulmin Completeness Check
@@ -120,7 +120,7 @@ Output valid JSON:
   "passing_threshold": 7.0,
   "recommendation": "revise",
   "structural_feedback": "Overall argument assessment",
-  "reviewer_commentary": "As a reviewer at [venue], combining peer review with rhetoric professor scrutiny...",
+  "reviewer_commentary": "As a reviewer at [publication target], combining peer review with rhetoric professor scrutiny...",
   "revision_priority": ["1. Most critical fix", "2. Second priority"],
   "target_for_revision": "domain_writer"
 }
@@ -131,12 +131,12 @@ A paper where more than 30% of factual claims are single-source MUST have eviden
 """
 
 REFLECTION_PROMPT = """Have I evaluated every rubric dimension with specific evidence from the draft?
-Are my revision requirements actionable and specific? Would a human reviewer at the target venue
+Are my revision requirements actionable and specific? Would a human reviewer at the target publication
 reach similar conclusions?"""
 
 
 class CriticalReviewer(BaseAgent):
-    """Evaluates drafts against venue rubrics using Opus for highest reasoning quality."""
+    """Evaluates drafts against publication target rubrics using Opus for highest reasoning quality."""
 
     role = AgentRole.CRITICAL_REVIEWER
     artifact_type = ArtifactType.REVIEW
@@ -163,14 +163,14 @@ class CriticalReviewer(BaseAgent):
             required_count = len(tmpl.required_sections)
             if section_count < required_count:
                 structural_warnings.append(
-                    f"INCOMPLETE: Draft has {section_count} sections but venue requires {required_count}. "
+                    f"INCOMPLETE: Draft has {section_count} sections but publication target requires {required_count}. "
                     f"Missing sections must be written before this paper can pass review."
                 )
             min_pages = tmpl.total_length_min_pages or 0
             min_words = min_pages * 350  # ~350 words per page
             if min_words > 0 and total_words < min_words:
                 structural_warnings.append(
-                    f"UNDERWEIGHT: Draft is {total_words} words but venue requires minimum "
+                    f"UNDERWEIGHT: Draft is {total_words} words but publication target requires minimum "
                     f"{min_pages} pages (~{min_words} words). Current draft is {total_words/min_words*100:.0f}% of minimum."
                 )
 

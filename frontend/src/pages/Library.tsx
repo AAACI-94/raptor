@@ -157,7 +157,7 @@ export default function Library() {
           </div>
           <select value={venueFilter} onChange={(e) => setVenueFilter(e.target.value)}
             className="px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm">
-            <option value="">All Venues</option>
+            <option value="">All Publications</option>
             {Object.entries(VENUE_LABELS).map(([id, label]) => (
               <option key={id} value={id}>{label}</option>
             ))}

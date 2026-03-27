@@ -203,7 +203,7 @@ Do NOT:
 - Add decorative styling that doesn't carry meaning
 - Use default Mermaid class names like :::classDef (they conflict with theme)
 
-## VENUE ADAPTATION
+## PUBLICATION TARGET ADAPTATION
 - **Academic (IEEE, ACM, USENIX)**: Formal, minimal styling. Let the theme handle colors. Use precise labels. Number figure references. Prefer classDiagram, sequenceDiagram, xychart, quadrantChart.
 - **Practitioner (SANS, CSA)**: Use the red/green/amber semantic colors above for threat/defense/warning. Before/after comparisons. Implementation detail in nodes. Prefer flowchart, xychart, mindmap, quadrantChart.
 - **Industry (Dark Reading)**: Minimal nodes, one takeaway per figure. Clean and simple. Prefer pie, xychart bar, simple flowchart.
@@ -231,7 +231,7 @@ Respond with valid JSON:
       "mermaid": "sequenceDiagram\\n    participant A\\n    ...",
       "placement": "Section 3, after the paragraph discussing X",
       "supports_claim": "The specific claim this figure supports",
-      "venue_notes": "Any venue-specific formatting notes"
+      "venue_notes": "Any publication-specific formatting notes"
     }
   ],
   "figure_plan": "Overall rationale for figure selection and argument arc support",
@@ -240,7 +240,7 @@ Respond with valid JSON:
   ],
   "total_figures": 4,
   "diagram_type_diversity": "Summary of diagram types used and why variety was chosen",
-  "venue_compliance_notes": "How the figure set meets venue expectations"
+  "venue_compliance_notes": "How the figure set meets publication target expectations"
 }
 
 ## REJECTION CRITERIA
@@ -248,7 +248,7 @@ Respond with valid JSON:
 - Figure duplicates information already clear from prose alone
 - Wrong diagram type for the data pattern (e.g., pie chart for temporal data)
 - Mermaid syntax is invalid or uses HTML tags in node labels
-- Figure count inappropriate for venue
+- Figure count inappropriate for publication target
 - All figures use the same diagram type when variety would better serve the content
 """
 
@@ -261,7 +261,7 @@ REFLECTION_PROMPT = """For each figure:
 
 
 class VisualArchitect(BaseAgent):
-    """Generates venue-adapted Mermaid diagrams using a visualization selection framework."""
+    """Generates publication-adapted Mermaid diagrams using a visualization selection framework."""
 
     role = AgentRole.VISUAL_ARCHITECT
     artifact_type = ArtifactType.FIGURES
@@ -283,10 +283,10 @@ class VisualArchitect(BaseAgent):
         if venue:
             vtype = venue.venue_type
             if vtype == "academic_conference":
-                venue_guidance = f"Academic venue ({venue.display_name}). Formal notation, grayscale-safe, numbered. Prefer: classDiagram, sequenceDiagram, xychart, quadrantChart."
+                venue_guidance = f"Academic publication ({venue.display_name}). Formal notation, grayscale-safe, numbered. Prefer: classDiagram, sequenceDiagram, xychart, quadrantChart."
                 expected_count = "4-8"
             elif vtype == "practitioner_repository":
-                venue_guidance = f"Practitioner venue ({venue.display_name}). Actionable, color-coded. Before/after comparisons. Prefer: flowchart, radar-beta, xychart, mindmap."
+                venue_guidance = f"Practitioner publication ({venue.display_name}). Actionable, color-coded. Before/after comparisons. Prefer: flowchart, radar-beta, xychart, mindmap."
                 expected_count = "3-6"
             elif vtype == "industry_publication":
                 venue_guidance = f"Industry publication ({venue.display_name}). Simple, high-impact. One takeaway per figure. Prefer: pie, xychart bar, simple flowchart."
@@ -312,7 +312,7 @@ class VisualArchitect(BaseAgent):
 ## Draft Sections
 {draft_summary}
 
-## Venue Guidance
+## Publication Target Guidance
 {venue_guidance}
 Expected figure count: {expected_count}
 
@@ -362,7 +362,7 @@ Respond with the JSON structure from your system prompt."""
             decision=f"Generated {figure_count} figures using {len(types_used)} diagram types: {', '.join(types_used)}",
             rationale=payload.get("figure_plan", ""),
             confidence=0.85,
-            alternatives=[f"Could generate {expected_count} per venue guidelines"],
+            alternatives=[f"Could generate {expected_count} per publication target guidelines"],
         )
 
         # Self-reflection

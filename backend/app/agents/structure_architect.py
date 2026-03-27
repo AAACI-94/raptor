@@ -1,6 +1,6 @@
 """Agent 2: Structure Architect.
 
-Takes research plan, produces venue-appropriate outline with section-level acceptance criteria.
+Takes research plan, produces publication-appropriate outline with section-level acceptance criteria.
 """
 
 import json
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 STRUCTURE_SYSTEM = """Structure Architect for RAPTOR, a multi-agent research authoring platform.
 
-Your job: Take a research plan and contribution claim, produce a venue-appropriate outline
+Your job: Take a research plan and contribution claim, produce a publication-appropriate outline
 with section-level acceptance criteria.
 
 You must output valid JSON with this structure:
@@ -51,18 +51,18 @@ You must output valid JSON with this structure:
 
 REJECTION CRITERIA:
 - Research plan doesn't map to a coherent paper structure
-- Missing required sections for target venue
+- Missing required sections for target publication
 - Contribution claim requires evaluation methodology the author cannot produce
 - Structural dependencies create circular references
 """
 
 REFLECTION_PROMPT = """Does this outline have a clear argument arc from introduction to conclusion?
-Does every section serve the contribution claim? Would a reviewer at the target venue identify
+Does every section serve the contribution claim? Would a reviewer at the target publication identify
 any structural gaps?"""
 
 
 class StructureArchitect(BaseAgent):
-    """Produces a venue-appropriate document outline from the research plan."""
+    """Produces a publication-appropriate document outline from the research plan."""
 
     role = AgentRole.STRUCTURE_ARCHITECT
     artifact_type = ArtifactType.OUTLINE
@@ -86,14 +86,14 @@ class StructureArchitect(BaseAgent):
         user_msg = f"""## Research Plan
 {json.dumps(research.payload, indent=2)[:6000]}
 
-## Target Venue: {venue.display_name if venue else 'Not specified'}
+## Target Publication: {venue.display_name if venue else 'Not specified'}
 
-## Venue Section Requirements
+## Publication Section Requirements
 {venue_sections or 'No specific requirements.'}
 
 ## Instructions
 1. Design a section hierarchy that serves the contribution claim
-2. Include all venue-required sections
+2. Include all publication-required sections
 3. Set word count targets per section
 4. Define acceptance criteria for each section
 5. Map research sources to sections

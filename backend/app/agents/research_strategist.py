@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 RESEARCH_SYSTEM = """Research Strategist for RAPTOR, a multi-agent research authoring platform.
 
-Your job: Given a topic and target venue, produce a comprehensive research plan.
+Your job: Given a topic and target publication, produce a comprehensive research plan.
 
 You must output valid JSON with this structure:
 {
@@ -47,7 +47,7 @@ You must output valid JSON with this structure:
     "claim_text": ["source_title_1", "source_title_2"]
   },
   "two_source_coverage": "How many claims have 2+ independent sources vs single-source claims",
-  "venue_alignment": "How this research plan aligns with the target venue's expectations",
+  "venue_alignment": "How this research plan aligns with the target publication's expectations",
   "nda_flags": ["any potentially sensitive content areas"]
 }
 
@@ -60,13 +60,13 @@ SOURCE CLASSIFICATION RULES (journalistic standards):
 - TWO-SOURCE RULE: For each major claim in the evidence_map, identify at least 2 independent sources. Flag claims with only 1 source.
 
 REJECTION CRITERIA (reject the input if any apply):
-- Topic has insufficient novelty for the target venue
+- Topic has insufficient novelty for the target publication
 - Proposed contribution is too broad to be defensible in a single paper
 - Topic requires proprietary data that cannot be generalized
 """
 
 REFLECTION_PROMPT = """Does this research plan identify a specific, defensible contribution claim
-supported by at least 5 quality sources? Would a reviewer at the target venue consider this gap
+supported by at least 5 quality sources? Would a reviewer at the target publication consider this gap
 worth filling? Is the evidence map comprehensive?"""
 
 
@@ -96,8 +96,8 @@ class ResearchStrategist(BaseAgent):
 
         system_prompt = RESEARCH_SYSTEM
         if venue:
-            system_prompt += f"\n\nTarget Venue: {venue.display_name} ({venue.venue_type})"
-            system_prompt += f"\nVenue Description: {venue.description}"
+            system_prompt += f"\n\nTarget Publication: {venue.display_name} ({venue.venue_type})"
+            system_prompt += f"\nPublication Description: {venue.description}"
 
         user_msg = f"""## Topic
 {project.topic_description}
@@ -105,7 +105,7 @@ class ResearchStrategist(BaseAgent):
 ## Author Context
 {project.author_context or 'No additional context provided.'}
 
-## Target Venue
+## Target Publication
 {venue.display_name if venue else 'Not specified'}
 
 ## Instructions
@@ -113,7 +113,7 @@ class ResearchStrategist(BaseAgent):
 2. Plan research queries to find supporting evidence
 3. Identify at least 5-10 high-quality sources that support the contribution
 4. Map evidence to claims
-5. Assess venue alignment
+5. Assess publication target alignment
 6. Flag any NDA-sensitive areas
 
 Respond with the JSON structure specified in your system prompt."""

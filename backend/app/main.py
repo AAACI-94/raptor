@@ -26,7 +26,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     init_db()
     logger.info("[main] Database initialized")
 
-    # Seed default venue profiles
+    # Seed default publication target profiles
     from app.services.venue_service import seed_default_venues
     seed_default_venues()
 
@@ -78,7 +78,8 @@ app.add_middleware(
 # Routers
 app.include_router(health.router, prefix="/api", tags=["health"])
 app.include_router(projects.router, prefix="/api/projects", tags=["projects"])
-app.include_router(venues.router, prefix="/api/venues", tags=["venues"])
+app.include_router(venues.router, prefix="/api/publications", tags=["publications"])
+app.include_router(venues.router, prefix="/api/venues", tags=["venues"])  # backwards compat alias
 app.include_router(artifacts.router, prefix="/api", tags=["artifacts"])
 app.include_router(pipeline.router, prefix="/api", tags=["pipeline"])
 app.include_router(observatory.router, prefix="/api/observatory", tags=["observatory"])

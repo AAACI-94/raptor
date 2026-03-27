@@ -182,7 +182,7 @@ class Observatory:
         return insights
 
     def get_rubric_history(self, venue_id: str) -> list[dict]:
-        """Get rubric adjustment history for a venue."""
+        """Get rubric adjustment history for a publication target."""
         db = get_db()
         rows = db.execute(
             """SELECT dimension, old_weight, new_weight, trigger_type, rationale, timestamp

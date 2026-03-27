@@ -27,7 +27,7 @@ produce a formatted bibliography. Output ONLY valid JSON:
 
 Do NOT add, remove, or modify any sources. Format exactly what is provided."""
 
-CHECKLIST_SYSTEM = """You are a submission checklist generator. Given a document summary and venue requirements,
+CHECKLIST_SYSTEM = """You are a submission checklist generator. Given a document summary and publication target requirements,
 generate a submission readiness checklist. Output ONLY valid JSON:
 {
   "checklist": [
@@ -159,7 +159,7 @@ class ProductionAgent(BaseAgent):
         )
 
     async def _format_bibliography(self, project: Any, venue: Any, sources: list) -> list:
-        """Use LLM to format sources into venue-appropriate bibliography."""
+        """Use LLM to format sources into publication-appropriate bibliography."""
         if not sources:
             return []
 
@@ -196,11 +196,11 @@ class ProductionAgent(BaseAgent):
                                    total_words: int, pages: int,
                                    section_count: int, ref_count: int,
                                    draft_words: int) -> dict:
-        """Use LLM to generate venue-specific submission checklist."""
+        """Use LLM to generate publication-specific submission checklist."""
         venue_reqs = ""
         if venue:
             tmpl = venue.profile_data.structural_template
-            venue_reqs = f"""Venue: {venue.display_name}
+            venue_reqs = f"""Publication Target: {venue.display_name}
 Required sections: {len(tmpl.required_sections)}
 Page range: {tmpl.total_length_min_pages}-{tmpl.total_length_max_pages} pages
 Min references: {venue.profile_data.citation_format.minimum_references}"""

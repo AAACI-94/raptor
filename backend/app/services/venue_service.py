@@ -1,4 +1,7 @@
-"""Venue profile CRUD and default seeding."""
+"""Publication target profile CRUD and default seeding.
+
+UI refers to these as "Publication Targets". DB schema retains venue_profile_id column names.
+"""
 
 import json
 import logging
@@ -16,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 def seed_default_venues() -> None:
-    """Seed built-in venue profiles if they don't exist."""
+    """Seed built-in publication target profiles if they don't exist."""
     db = get_db()
     existing = db.execute("SELECT COUNT(*) as cnt FROM venue_profiles").fetchone()["cnt"]
     if existing > 0:
@@ -36,7 +39,7 @@ def seed_default_venues() -> None:
 
 
 def get_venue(venue_id: str) -> VenueProfile:
-    """Get a venue profile by ID."""
+    """Get a publication target profile by ID."""
     db = get_db()
     row = db.execute("SELECT * FROM venue_profiles WHERE id = ?", (venue_id,)).fetchone()
     if row is None:
@@ -45,14 +48,14 @@ def get_venue(venue_id: str) -> VenueProfile:
 
 
 def list_venues() -> list[VenueProfile]:
-    """List all venue profiles."""
+    """List all publication target profiles."""
     db = get_db()
     rows = db.execute("SELECT * FROM venue_profiles ORDER BY display_name").fetchall()
     return [_row_to_venue(r) for r in rows]
 
 
 def create_venue(data: VenueCreate) -> VenueProfile:
-    """Create a custom venue profile."""
+    """Create a custom publication target profile."""
     db = get_db()
     now = datetime.now(timezone.utc).isoformat()
     db.execute(
@@ -67,7 +70,7 @@ def create_venue(data: VenueCreate) -> VenueProfile:
 
 
 def update_venue(venue_id: str, data: VenueUpdate) -> VenueProfile:
-    """Update a venue profile."""
+    """Update a publication target profile."""
     db = get_db()
     now = datetime.now(timezone.utc).isoformat()
     venue = get_venue(venue_id)
@@ -91,13 +94,13 @@ def update_venue(venue_id: str, data: VenueUpdate) -> VenueProfile:
 
 
 def delete_venue(venue_id: str) -> None:
-    """Delete a custom venue profile. Cannot delete built-in venues."""
+    """Delete a custom publication target profile. Cannot delete built-in profiles."""
     db = get_db()
     row = db.execute("SELECT is_custom FROM venue_profiles WHERE id = ?", (venue_id,)).fetchone()
     if row is None:
         raise ValueError(f"Venue not found: {venue_id}")
     if not row["is_custom"]:
-        raise ValueError("Cannot delete built-in venue profiles")
+        raise ValueError("Cannot delete built-in publication target profiles")
     db.execute("DELETE FROM venue_profiles WHERE id = ?", (venue_id,))
     db.commit()
     logger.info("[venue] Deleted venue %s", venue_id)

@@ -26,9 +26,9 @@ export const api = {
   updateProject: (id: string, data: any) => request<any>(`/projects/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteProject: (id: string) => request<any>(`/projects/${id}`, { method: 'DELETE' }),
 
-  // Venues
-  listVenues: () => request<any[]>('/venues'),
-  getVenue: (id: string) => request<any>(`/venues/${id}`),
+  // Publication Targets (aliases: /publications and /venues)
+  listVenues: () => request<any[]>('/publications'),
+  getVenue: (id: string) => request<any>(`/publications/${id}`),
 
   // Pipeline
   startPipeline: (id: string) => request<any>(`/projects/${id}/pipeline/start`, { method: 'POST' }),

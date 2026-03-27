@@ -1,6 +1,6 @@
 [project]
 name = "raptor"
-version = "1.0.0"
+version = "1.2.0"
 description = "Research Authoring Platform with Traceable Orchestrated Reasoning"
 requires-python = ">=3.11"
 dependencies = [

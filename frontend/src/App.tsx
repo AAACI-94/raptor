@@ -6,7 +6,7 @@ const Library = lazy(() => import('./pages/Library'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Workspace = lazy(() => import('./pages/Workspace'));
 const Observatory = lazy(() => import('./pages/Observatory'));
-const VenueManager = lazy(() => import('./pages/VenueManager'));
+const PublicationManager = lazy(() => import('./pages/PublicationManager'));
 const About = lazy(() => import('./pages/About'));
 
 function Loading() {
@@ -28,7 +28,8 @@ export default function App() {
           <Route path="/projects/:projectId" element={<Workspace />} />
           <Route path="/observatory" element={<Observatory />} />
           <Route path="/observatory/:projectId" element={<Observatory />} />
-          <Route path="/venues" element={<VenueManager />} />
+          <Route path="/publications" element={<PublicationManager />} />
+          <Route path="/venues" element={<PublicationManager />} />
           <Route path="/about" element={<About />} />
         </Routes>
       </Suspense>

@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     # Server
     port: int = 8000
     log_level: str = "INFO"
-    version: str = "1.0.0"
+    version: str = "1.2.0"
 
     # Database
     database_path: str = "./data/raptor.db"

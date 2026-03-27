@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { BookOpen, Copy, Check, ChevronRight, Shield, Search, Wrench, Info } from 'lucide-react';
-import { APP_VERSION, agents, selfHealingComponents, pipelineStages, venueTypes, techStack } from '../data/about';
+import { BookOpen, Copy, Check, Shield, Search, Wrench, Sparkles, Scale, Brain } from 'lucide-react';
+import { APP_VERSION, agents, selfHealingComponents, pipelineStages, publicationTargetTypes, techStack, qualityStandards, contextEngineering } from '../data/about';
 import { changelog } from '../data/changelog';
 import type { ChangelogItem } from '../data/changelog';
 
@@ -12,6 +12,9 @@ const BADGE_COLORS: Record<string, string> = {
   healing: 'bg-red-100 text-red-700',
   api: 'bg-cyan-100 text-cyan-700',
   infra: 'bg-gray-100 text-gray-700',
+  quality: 'bg-indigo-100 text-indigo-700',
+  library: 'bg-teal-100 text-teal-700',
+  context: 'bg-orange-100 text-orange-700',
 };
 
 const HEALING_ICONS: Record<string, typeof Shield> = { Shield, Search, Wrench };
@@ -50,8 +53,8 @@ export default function About() {
         <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
           A Dockerized, local-first multi-agent authoring platform purpose-built for cybersecurity practitioners
           who need to transform domain expertise into published research artifacts. The system guides an author
-          through a structured pipeline with seven domain-specialized agents, venue-adaptive quality models,
-          structured inter-agent communication, and full-stack observability.
+          through a structured pipeline with seven domain-specialized agents, publication-adaptive quality models,
+          journalistic verification standards, logical rigor enforcement, and full-stack observability.
         </p>
       </section>
 
@@ -88,9 +91,60 @@ export default function About() {
         </div>
       </section>
 
+      {/* Quality & Rigor Standards */}
+      <section className="mb-8">
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <Scale className="h-5 w-5 text-indigo-500" />
+          Quality &amp; Rigor Standards
+        </h2>
+        <p className="text-sm text-gray-500 mb-4">
+          Every paper is evaluated against journalistic verification standards, logical rigor frameworks,
+          and formal causal inference methods. These standards are enforced by both the Domain Writer (during drafting)
+          and the Critical Reviewer (during evaluation).
+        </p>
+        <div className="space-y-4">
+          {qualityStandards.map((standard) => (
+            <div key={standard.name} className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-indigo-200 dark:border-indigo-900">
+              <div className="font-semibold text-sm mb-2">{standard.name}</div>
+              <ul className="space-y-1">
+                {standard.items.map((item, i) => (
+                  <li key={i} className="text-xs text-gray-500 flex items-start gap-2">
+                    <span className="text-indigo-400 mt-0.5">-</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Context Engineering */}
+      <section className="mb-8">
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <Brain className="h-5 w-5 text-orange-500" />
+          Context Engineering
+        </h2>
+        <p className="text-sm text-gray-500 mb-4">
+          Each agent receives the minimum context needed for its role. These optimizations reduce token cost,
+          improve output quality, and enable cross-project learning.
+        </p>
+        <div className="grid gap-3 md:grid-cols-2">
+          {contextEngineering.map((ce) => (
+            <div key={ce.name} className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-orange-200 dark:border-orange-900">
+              <div className="font-semibold text-sm mb-1">{ce.name}</div>
+              <p className="text-xs text-gray-500">{ce.description}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* Self-Healing System */}
       <section className="mb-8">
-        <h2 className="text-xl font-bold mb-4">Self-Healing System</h2>
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-red-500" />
+          Self-Healing System
+        </h2>
         <div className="grid gap-3 md:grid-cols-3">
           {selfHealingComponents.map((comp) => {
             const IconComponent = HEALING_ICONS[comp.icon] || Shield;
@@ -107,11 +161,11 @@ export default function About() {
         </div>
       </section>
 
-      {/* Venue Types */}
+      {/* Publication Targets */}
       <section className="mb-8">
-        <h2 className="text-xl font-bold mb-4">Venue Profiles</h2>
+        <h2 className="text-xl font-bold mb-4">Publication Targets</h2>
         <div className="grid gap-3 md:grid-cols-2">
-          {venueTypes.map((v) => (
+          {publicationTargetTypes.map((v) => (
             <div key={v.name} className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
               <div className="font-semibold text-sm">{v.name}</div>
               <div className="text-xs text-gray-400">e.g., {v.example}</div>
@@ -185,7 +239,7 @@ function ChangelogItemRow({ item }: { item: string | ChangelogItem }) {
   return (
     <div className="text-xs py-0.5 pl-3 flex items-start gap-2">
       {item.badge && (
-        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${BADGE_COLORS[item.badge] || 'bg-gray-100'}`}>
+        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium whitespace-nowrap ${BADGE_COLORS[item.badge] || 'bg-gray-100'}`}>
           {item.badge}
         </span>
       )}
@@ -209,11 +263,17 @@ function generateMarkdown(): string {
     '### Agent Roster',
     ...agents.map(a => `- **${a.name}** (${a.model}): ${a.description}`),
     '',
+    '### Quality & Rigor Standards',
+    ...qualityStandards.flatMap(s => [`\n**${s.name}**`, ...s.items.map(i => `- ${i}`)]),
+    '',
+    '### Context Engineering',
+    ...contextEngineering.map(c => `- **${c.name}**: ${c.description}`),
+    '',
     '### Self-Healing System',
     ...selfHealingComponents.map(c => `- **${c.name}**: ${c.description}`),
     '',
-    '### Venue Profiles',
-    ...venueTypes.map(v => `- **${v.name}** (${v.example}): ${v.focus}`),
+    '### Publication Targets',
+    ...publicationTargetTypes.map(v => `- **${v.name}** (${v.example}): ${v.focus}`),
     '',
     '### Tech Stack',
     ...techStack.map(t => `- **${t.name}**: ${t.tech}`),

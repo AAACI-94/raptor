@@ -89,10 +89,10 @@ export default function Dashboard() {
               className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" placeholder="Describe your research topic..." />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Target Venue</label>
+            <label className="block text-sm font-medium mb-1">Publication Target</label>
             <select value={newVenue} onChange={(e) => setNewVenue(e.target.value)}
               className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
-              <option value="">Select a venue...</option>
+              <option value="">Select a publication target...</option>
               {venues.map((v) => <option key={v.id} value={v.id}>{v.display_name}</option>)}
             </select>
           </div>
