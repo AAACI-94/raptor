@@ -18,7 +18,7 @@ router = APIRouter()
 
 
 @router.get("/projects/{project_id}/export/{format}")
-def export_document(project_id: str, format: str):
+def export_document(project_id: str, format: str) -> dict:
     """Export the final document in the requested format."""
     # Get production artifact
     artifact = artifact_service.get_latest_artifact(project_id, ArtifactType.PRODUCTION_OUTPUT)
@@ -51,7 +51,7 @@ def export_document(project_id: str, format: str):
 
 
 @router.get("/projects/{project_id}/preview")
-def preview_document(project_id: str):
+def preview_document(project_id: str) -> dict:
     """Return the production output as rendered markdown for in-app preview."""
     # Try production output first, fall back to draft sections
     artifact = artifact_service.get_latest_artifact(project_id, ArtifactType.PRODUCTION_OUTPUT)
@@ -128,7 +128,7 @@ def preview_document(project_id: str):
 
 
 @router.get("/projects/{project_id}/figures")
-def get_figures(project_id: str):
+def get_figures(project_id: str) -> dict:
     """Return all generated figures (Mermaid diagrams) for a project."""
     artifact = artifact_service.get_latest_artifact(project_id, ArtifactType.FIGURES)
     if not artifact:
@@ -145,7 +145,7 @@ def get_figures(project_id: str):
 
 
 @router.get("/projects/{project_id}/export/checklist")
-def get_submission_checklist(project_id: str):
+def get_submission_checklist(project_id: str) -> dict:
     """Get the venue submission checklist from the production output."""
     artifact = artifact_service.get_latest_artifact(project_id, ArtifactType.PRODUCTION_OUTPUT)
     if not artifact:

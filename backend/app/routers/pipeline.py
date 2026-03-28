@@ -14,7 +14,7 @@ router = APIRouter()
 
 
 @router.post("/projects/{project_id}/pipeline/start")
-async def start_pipeline(project_id: str):
+async def start_pipeline(project_id: str) -> dict:
     """Start the authoring pipeline from topic selection."""
     try:
         result = await orchestrator.start_pipeline(project_id)
@@ -24,7 +24,7 @@ async def start_pipeline(project_id: str):
 
 
 @router.post("/projects/{project_id}/pipeline/advance")
-async def advance_pipeline(project_id: str):
+async def advance_pipeline(project_id: str) -> dict:
     """Advance to the next pipeline stage."""
     try:
         result = await orchestrator.advance_pipeline(project_id)
@@ -34,7 +34,7 @@ async def advance_pipeline(project_id: str):
 
 
 @router.post("/projects/{project_id}/pipeline/reject")
-async def reject_pipeline(project_id: str, data: PipelineRejectRequest):
+async def reject_pipeline(project_id: str, data: PipelineRejectRequest) -> dict:
     """Reject current stage output and request revision."""
     try:
         result = await orchestrator.reject_stage(project_id, data.feedback, data.target_stage)
@@ -44,7 +44,7 @@ async def reject_pipeline(project_id: str, data: PipelineRejectRequest):
 
 
 @router.post("/projects/{project_id}/pipeline/override")
-async def override_pipeline(project_id: str, data: PipelineOverrideRequest):
+async def override_pipeline(project_id: str, data: PipelineOverrideRequest) -> dict:
     """Override rejection and force-advance."""
     try:
         result = await orchestrator.override_stage(project_id, data.reason)
@@ -54,7 +54,7 @@ async def override_pipeline(project_id: str, data: PipelineOverrideRequest):
 
 
 @router.get("/projects/{project_id}/pipeline/status")
-def get_pipeline_status(project_id: str):
+def get_pipeline_status(project_id: str) -> dict:
     """Get current pipeline state."""
     try:
         status = orchestrator.get_pipeline_status(project_id)

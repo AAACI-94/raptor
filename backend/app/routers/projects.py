@@ -14,21 +14,21 @@ router = APIRouter()
 
 
 @router.post("")
-def create_project(data: ProjectCreate):
+def create_project(data: ProjectCreate) -> dict:
     """Create a new authoring project."""
     project = project_service.create_project(data)
     return project.model_dump()
 
 
 @router.get("")
-def list_projects():
+def list_projects() -> list:
     """List all projects."""
     projects = project_service.list_projects()
     return [p.model_dump() for p in projects]
 
 
 @router.get("/{project_id}")
-def get_project(project_id: str):
+def get_project(project_id: str) -> dict:
     """Get a project by ID."""
     try:
         project = project_service.get_project(project_id)
@@ -38,7 +38,7 @@ def get_project(project_id: str):
 
 
 @router.put("/{project_id}")
-def update_project(project_id: str, data: ProjectUpdate):
+def update_project(project_id: str, data: ProjectUpdate) -> dict:
     """Update a project."""
     try:
         project = project_service.update_project(project_id, data)
@@ -48,7 +48,7 @@ def update_project(project_id: str, data: ProjectUpdate):
 
 
 @router.delete("/{project_id}")
-def delete_project(project_id: str):
+def delete_project(project_id: str) -> dict:
     """Delete a project and all related data."""
     try:
         project_service.delete_project(project_id)
@@ -69,7 +69,7 @@ def library_search(
     starred: Optional[bool] = Query(None),
     sort: str = Query("date"),
     order: str = Query("desc"),
-):
+) -> list:
     """Search and filter the research library."""
     tag_list = tags.split(",") if tags else None
     results = project_service.library_query(
@@ -80,19 +80,19 @@ def library_search(
 
 
 @router.get("/library/tags")
-def library_tags():
+def library_tags() -> list:
     """Get all tags with usage counts."""
     return project_service.get_library_tags()
 
 
 @router.get("/library/stats")
-def library_stats():
+def library_stats() -> dict:
     """Get aggregate library statistics."""
     return project_service.get_library_stats()
 
 
 @router.put("/{project_id}/tags")
-def update_tags(project_id: str, data: TagsUpdate):
+def update_tags(project_id: str, data: TagsUpdate) -> dict:
     """Update a project's tags."""
     try:
         project_service.update_tags(project_id, data.tags)
@@ -102,7 +102,7 @@ def update_tags(project_id: str, data: TagsUpdate):
 
 
 @router.put("/{project_id}/star")
-def toggle_star(project_id: str):
+def toggle_star(project_id: str) -> dict:
     """Toggle a project's starred status."""
     try:
         new_state = project_service.toggle_star(project_id)
@@ -112,7 +112,7 @@ def toggle_star(project_id: str):
 
 
 @router.put("/{project_id}/category")
-def update_category(project_id: str, data: CategoryUpdate):
+def update_category(project_id: str, data: CategoryUpdate) -> dict:
     """Set a project's category."""
     try:
         project_service.update_category(project_id, data.category)

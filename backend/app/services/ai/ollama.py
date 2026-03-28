@@ -166,7 +166,8 @@ def check_ollama() -> bool:
         models = [m.get("name", "") for m in resp.json().get("models", [])]
         target = settings.raptor_ollama_model
         return any(target in m for m in models)
-    except Exception:
+    except Exception as e:
+        logger.debug("[ollama] Health check failed: %s", e)
         return False
 
 

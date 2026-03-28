@@ -95,7 +95,8 @@ def check_claude_cli() -> bool:
             capture_output=True, text=True, timeout=5,
         )
         return result.returncode == 0 and len(result.stdout.strip()) > 0
-    except Exception:
+    except Exception as e:
+        logger.debug("[claude-cli] Version check failed: %s", e)
         return False
 
 

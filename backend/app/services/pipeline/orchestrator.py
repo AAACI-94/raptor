@@ -368,8 +368,8 @@ class PipelineOrchestrator:
                             project_id,
                             total_cost_usd=round(cost_row["total"], 4),
                         )
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("[pipeline] Failed to update cost metadata: %s", e)
 
         except Exception as e:
             logger.warning("[pipeline] Failed to update library metadata: %s", e)

@@ -31,7 +31,7 @@ class RubricAdjustmentRequest(BaseModel):
 
 
 @router.post("/feedback")
-def submit_feedback(data: FeedbackSubmission):
+def submit_feedback(data: FeedbackSubmission) -> dict:
     """Submit author feedback for a review dimension."""
     db = get_db()
     delta = data.author_rating - data.system_rating

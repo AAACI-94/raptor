@@ -8,7 +8,7 @@ import logging
 import uuid
 from datetime import datetime, timezone
 
-from app.core.database import get_db
+from app.core.database import get_db, safe_update
 from app.models.venue import (
     VenueProfile, VenueProfileData, VenueCreate, VenueUpdate,
     QualityRubric, RubricDimension, StructuralTemplate, SectionTemplate,
@@ -85,10 +85,8 @@ def update_venue(venue_id: str, data: VenueUpdate) -> VenueProfile:
 
     if updates:
         updates["updated_at"] = now
-        set_clause = ", ".join(f"{k} = ?" for k in updates)
-        values = list(updates.values()) + [venue_id]
-        db.execute(f"UPDATE venue_profiles SET {set_clause} WHERE id = ?", values)
-        db.commit()
+        _VENUE_UPDATE_COLUMNS = {"display_name", "description", "profile_data", "updated_at"}
+        safe_update("venue_profiles", updates, "id", venue_id, _VENUE_UPDATE_COLUMNS)
 
     return get_venue(venue_id)
 

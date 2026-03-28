@@ -43,7 +43,7 @@ class ToneProfile(BaseModel):
     """Writing tone configuration per venue."""
     model_config = {"populate_by_name": True}
 
-    register: str = "practitioner_direct"  # noqa: Pydantic shadow warning is acceptable
+    tone_register: str = Field(default="practitioner_direct", alias="register", serialization_alias="register")
     person: str = "second_person_acceptable"
     voice: str = "active_preferred"
     jargon_level: str = "domain_standard"

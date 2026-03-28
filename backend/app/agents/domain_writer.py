@@ -302,7 +302,7 @@ Respond with the JSON structure from your system prompt."""
     def _build_tone_context(self, venue: Any) -> str:
         if venue and venue.profile_data.tone_profile:
             tp = venue.profile_data.tone_profile
-            return f"Tone: {tp.register}\nPerson: {tp.person}\nVoice: {tp.voice}\nJargon: {tp.jargon_level}"
+            return f"Tone: {tp.tone_register}\nPerson: {tp.person}\nVoice: {tp.voice}\nJargon: {tp.jargon_level}"
         return "Default professional tone"
 
     def _build_citation_context(self, venue: Any) -> str:
@@ -359,7 +359,8 @@ Respond with the JSON structure from your system prompt."""
                                 if pattern_key in normalized:
                                     requirement_counts[pattern_key] = requirement_counts.get(pattern_key, 0) + 1
                                     break
-                except Exception:
+                except Exception as e:
+                    self.logger.debug("[writer] Failed to parse learned patterns JSON: %s", e)
                     continue
 
             # Only surface patterns that appear in 2+ reviews (consistent feedback)

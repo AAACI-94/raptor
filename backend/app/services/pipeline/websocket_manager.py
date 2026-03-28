@@ -45,7 +45,8 @@ class WebSocketManager:
         for ws in self._connections[project_id]:
             try:
                 await ws.send_text(message)
-            except Exception:
+            except Exception as e:
+                logger.debug("[websocket] Dead connection for project %s: %s", project_id, e)
                 dead_connections.append(ws)
 
         # Clean up dead connections

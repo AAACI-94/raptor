@@ -226,7 +226,8 @@ class Sentinel:
                 (agent_role,),
             ).fetchone()
             return row["avg_cost"] or 0.0
-        except Exception:
+        except Exception as e:
+            logger.debug("[sentinel] Failed to get avg cost for %s: %s", agent_role, e)
             return 0.0
 
     def _log_event(

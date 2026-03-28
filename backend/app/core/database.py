@@ -55,11 +55,23 @@ def close_db() -> None:
     if _connection is not None:
         try:
             _connection.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("[database] WAL checkpoint on close failed: %s", e)
         _connection.close()
         _connection = None
         logger.info("[database] Connection closed")
+
+
+def safe_update(table: str, updates: dict, where_col: str, where_val: str, allowed_columns: set[str]) -> None:
+    """Execute a safe UPDATE with column allowlist validation."""
+    filtered = {k: v for k, v in updates.items() if k in allowed_columns}
+    if not filtered:
+        return
+    set_clause = ", ".join(f"{k} = ?" for k in filtered)
+    values = list(filtered.values()) + [where_val]
+    conn = get_db()
+    conn.execute(f"UPDATE {table} SET {set_clause} WHERE {where_col} = ?", values)
+    conn.commit()
 
 
 def check_db() -> bool:
@@ -68,5 +80,6 @@ def check_db() -> bool:
         conn = get_db()
         conn.execute("SELECT 1")
         return True
-    except Exception:
+    except Exception as e:
+        logger.debug("[database] Health check failed: %s", e)
         return False

@@ -17,14 +17,14 @@ router = APIRouter()
 
 
 @router.get("")
-def list_venues():
+def list_venues() -> list:
     """List all publication target profiles."""
     venues = venue_service.list_venues()
     return [v.model_dump() for v in venues]
 
 
 @router.get("/{venue_id}")
-def get_venue(venue_id: str):
+def get_venue(venue_id: str) -> dict:
     """Get a publication target profile by ID."""
     try:
         venue = venue_service.get_venue(venue_id)
@@ -34,14 +34,14 @@ def get_venue(venue_id: str):
 
 
 @router.post("")
-def create_venue(data: VenueCreate):
+def create_venue(data: VenueCreate) -> dict:
     """Create a custom publication target profile."""
     venue = venue_service.create_venue(data)
     return venue.model_dump()
 
 
 @router.put("/{venue_id}")
-def update_venue(venue_id: str, data: VenueUpdate):
+def update_venue(venue_id: str, data: VenueUpdate) -> dict:
     """Update a publication target profile."""
     try:
         venue = venue_service.update_venue(venue_id, data)
@@ -51,7 +51,7 @@ def update_venue(venue_id: str, data: VenueUpdate):
 
 
 @router.delete("/{venue_id}")
-def delete_venue(venue_id: str):
+def delete_venue(venue_id: str) -> dict:
     """Delete a custom publication target profile."""
     try:
         venue_service.delete_venue(venue_id)

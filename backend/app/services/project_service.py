@@ -5,7 +5,7 @@ import logging
 import uuid
 from datetime import datetime, timezone
 
-from app.core.database import get_db
+from app.core.database import get_db, safe_update
 from app.models.constants import ProjectStatus
 from app.models.project import Project, ProjectCreate, ProjectUpdate, ProjectSummary
 
@@ -77,10 +77,8 @@ def update_project(project_id: str, data: ProjectUpdate) -> Project:
 
     if updates:
         updates["updated_at"] = now
-        set_clause = ", ".join(f"{k} = ?" for k in updates)
-        values = list(updates.values()) + [project_id]
-        db.execute(f"UPDATE projects SET {set_clause} WHERE id = ?", values)
-        db.commit()
+        _PROJECT_UPDATE_COLUMNS = {"title", "topic_description", "author_context", "venue_profile_id", "nda_config", "updated_at"}
+        safe_update("projects", updates, "id", project_id, _PROJECT_UPDATE_COLUMNS)
         logger.info("[project] Updated project %s", project_id)
 
     return get_project(project_id)
@@ -167,16 +165,12 @@ def update_category(project_id: str, category: str) -> None:
 
 def update_library_metadata(project_id: str, **kwargs) -> None:
     """Update computed library metadata (abstract, word_count, figure_count, quality_score, total_cost)."""
-    db = get_db()
     now = datetime.now(timezone.utc).isoformat()
-    valid_fields = {"abstract", "word_count", "figure_count", "quality_score", "total_cost_usd"}
-    updates = {k: v for k, v in kwargs.items() if k in valid_fields and v is not None}
+    _LIBRARY_META_COLUMNS = {"abstract", "word_count", "figure_count", "quality_score", "total_cost_usd", "updated_at"}
+    updates = {k: v for k, v in kwargs.items() if k in _LIBRARY_META_COLUMNS and v is not None}
     if updates:
         updates["updated_at"] = now
-        set_clause = ", ".join(f"{k} = ?" for k in updates)
-        values = list(updates.values()) + [project_id]
-        db.execute(f"UPDATE projects SET {set_clause} WHERE id = ?", values)
-        db.commit()
+        safe_update("projects", updates, "id", project_id, _LIBRARY_META_COLUMNS)
 
 
 def auto_tag_from_research(project_id: str, research_payload: dict) -> list[str]:

@@ -16,13 +16,13 @@ def list_artifacts(
     project_id: str,
     artifact_type: str | None = Query(None),
     agent: str | None = Query(None),
-):
+) -> list:
     """List artifacts for a project."""
     return artifact_service.list_artifacts(project_id, artifact_type, agent)
 
 
 @router.get("/projects/{project_id}/artifacts/latest/{artifact_type}")
-def get_latest_artifact(project_id: str, artifact_type: str):
+def get_latest_artifact(project_id: str, artifact_type: str) -> dict:
     """Get the latest artifact of a given type."""
     artifact = artifact_service.get_latest_artifact(project_id, artifact_type)
     if artifact is None:
@@ -31,7 +31,7 @@ def get_latest_artifact(project_id: str, artifact_type: str):
 
 
 @router.get("/artifacts/{artifact_id}")
-def get_artifact(artifact_id: str):
+def get_artifact(artifact_id: str) -> dict:
     """Get a specific artifact by ID."""
     try:
         artifact = artifact_service.get_artifact(artifact_id)
