@@ -17,16 +17,18 @@ def get_traces(project_id: str) -> dict:
     return observatory.get_trace_summary(project_id)
 
 
+# IMPORTANT: /quality/trends must be defined BEFORE /quality/{project_id}
+# to avoid FastAPI matching "trends" as a project_id
+@router.get("/quality/trends")
+def get_quality_trends(venue_id: str | None = Query(None)) -> list:
+    """Get quality score trends across projects."""
+    return observatory.get_quality_trends(venue_id)
+
+
 @router.get("/quality/{project_id}")
 def get_quality(project_id: str) -> dict:
     """Get quality metrics for a project."""
     return observatory.get_quality_metrics(project_id)
-
-
-@router.get("/quality/trends")
-def get_quality_trends(venue_id: str | None = Query(None)) -> dict:
-    """Get quality score trends across projects."""
-    return observatory.get_quality_trends(venue_id)
 
 
 @router.get("/cost")
@@ -42,19 +44,19 @@ def get_project_cost(project_id: str) -> dict:
 
 
 @router.get("/insights")
-def get_insights(venue_id: str | None = Query(None)) -> dict:
+def get_insights(venue_id: str | None = Query(None)) -> list:
     """Get improvement insights from feedback patterns."""
     return observatory.get_improvement_insights(venue_id)
 
 
 @router.get("/rubric-history/{venue_id}")
-def get_rubric_history(venue_id: str) -> dict:
+def get_rubric_history(venue_id: str) -> list:
     """Get rubric adjustment history for a venue."""
     return observatory.get_rubric_history(venue_id)
 
 
 @router.get("/diagnostics/{project_id}")
-def get_diagnostics(project_id: str) -> dict:
+def get_diagnostics(project_id: str) -> list:
     """Get diagnostic events for a project."""
     return observatory.get_diagnostic_events(project_id)
 
