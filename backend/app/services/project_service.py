@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime, timezone
 
 from app.core.database import get_db
+from app.models.constants import ProjectStatus
 from app.models.project import Project, ProjectCreate, ProjectUpdate, ProjectSummary
 
 logger = logging.getLogger(__name__)
@@ -24,9 +25,9 @@ def create_project(data: ProjectCreate) -> Project:
     db.execute(
         """INSERT INTO projects (id, title, topic_description, author_context,
            venue_profile_id, status, nda_config, tags, category, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, 'TOPIC_SELECTED', ?, ?, ?, ?, ?)""",
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (project_id, data.title, data.topic_description, data.author_context,
-         data.venue_profile_id, nda_json, tags_json, data.category, now, now),
+         data.venue_profile_id, ProjectStatus.TOPIC_SELECTED, nda_json, tags_json, data.category, now, now),
     )
     db.commit()
     logger.info("[project] Created project %s: %s", project_id, data.title)
