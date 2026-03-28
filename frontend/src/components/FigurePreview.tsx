@@ -1,11 +1,21 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Image, AlertCircle, Copy, CheckCircle2, ChevronDown, ChevronRight } from 'lucide-react';
-import mermaid from 'mermaid';
 import { api } from '../api/client';
 
-// Professional Mermaid theme: clean, publication-quality diagrams
+// Dynamic import: Mermaid.js (2.8MB) is code-split and only loaded when figures are viewed
+let mermaidModule: any = null;
 let mermaidInitialized = false;
-function ensureMermaidInit() {
+
+async function loadMermaid() {
+  if (!mermaidModule) {
+    const m = await import('mermaid');
+    mermaidModule = m.default;
+  }
+  return mermaidModule;
+}
+
+async function ensureMermaidInit() {
+  const mermaid = await loadMermaid();
   if (!mermaidInitialized) {
     mermaid.initialize({
       startOnLoad: false,
@@ -319,8 +329,6 @@ function MermaidRenderer({ code }: { code: string }) {
   const [rendering, setRendering] = useState(true);
 
   useEffect(() => {
-    ensureMermaidInit();
-
     let cancelled = false;
     setSvgHtml(null);
     setError(null);
@@ -334,6 +342,8 @@ function MermaidRenderer({ code }: { code: string }) {
 
     const render = async () => {
       try {
+        await ensureMermaidInit();
+        const mermaid = mermaidModule;
         const { svg } = await mermaid.render(renderId, normalizedCode);
         if (!cancelled) {
           // Make SVG responsive by patching the SVG string

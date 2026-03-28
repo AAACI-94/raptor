@@ -79,27 +79,27 @@ export default function Dashboard() {
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 mb-6 space-y-4">
           <h2 className="text-lg font-semibold">Create New Project</h2>
           <div>
-            <label className="block text-sm font-medium mb-1">Title</label>
-            <input type="text" value={newTitle} onChange={(e) => setNewTitle(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" placeholder="Paper title" />
+            <label htmlFor="project-title" className="block text-sm font-medium mb-1">Title</label>
+            <input id="project-title" type="text" value={newTitle} onChange={(e) => setNewTitle(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-raptor-400" placeholder="Paper title" />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Topic Description</label>
-            <textarea value={newTopic} onChange={(e) => setNewTopic(e.target.value)} rows={3}
-              className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" placeholder="Describe your research topic..." />
+            <label htmlFor="project-topic" className="block text-sm font-medium mb-1">Topic Description</label>
+            <textarea id="project-topic" value={newTopic} onChange={(e) => setNewTopic(e.target.value)} rows={3}
+              className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-raptor-400" placeholder="Describe your research topic..." />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Publication Target</label>
-            <select value={newVenue} onChange={(e) => setNewVenue(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+            <label htmlFor="project-venue" className="block text-sm font-medium mb-1">Publication Target</label>
+            <select id="project-venue" value={newVenue} onChange={(e) => setNewVenue(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-raptor-400">
               <option value="">Select a publication target...</option>
               {venues.map((v) => <option key={v.id} value={v.id}>{v.display_name}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Author Context (optional)</label>
-            <textarea value={newContext} onChange={(e) => setNewContext(e.target.value)} rows={2}
-              className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" placeholder="Prior work, key ideas, constraints..." />
+            <label htmlFor="project-context" className="block text-sm font-medium mb-1">Author Context (optional)</label>
+            <textarea id="project-context" value={newContext} onChange={(e) => setNewContext(e.target.value)} rows={2}
+              className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-raptor-400" placeholder="Prior work, key ideas, constraints..." />
           </div>
           <div className="flex gap-2">
             <button onClick={handleCreate}

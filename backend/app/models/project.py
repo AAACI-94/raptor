@@ -15,32 +15,32 @@ class NDAConfig(BaseModel):
 
 class ProjectCreate(BaseModel):
     """Input for creating a new project."""
-    title: str
-    topic_description: str = ""
-    author_context: str = ""
-    venue_profile_id: str | None = None
+    title: str = Field(..., min_length=1, max_length=500)
+    topic_description: str = Field(default="", max_length=10000)
+    author_context: str = Field(default="", max_length=10000)
+    venue_profile_id: str | None = Field(default=None, max_length=100)
     nda_config: NDAConfig | None = None
-    tags: list[str] = Field(default_factory=list)
-    category: str | None = None
+    tags: list[str] = Field(default_factory=list, max_length=50)
+    category: str | None = Field(default=None, max_length=100)
 
 
 class ProjectUpdate(BaseModel):
     """Input for updating a project."""
-    title: str | None = None
-    topic_description: str | None = None
-    author_context: str | None = None
-    venue_profile_id: str | None = None
+    title: str | None = Field(default=None, max_length=500)
+    topic_description: str | None = Field(default=None, max_length=10000)
+    author_context: str | None = Field(default=None, max_length=10000)
+    venue_profile_id: str | None = Field(default=None, max_length=100)
     nda_config: NDAConfig | None = None
 
 
 class TagsUpdate(BaseModel):
     """Input for updating project tags."""
-    tags: list[str]
+    tags: list[str] = Field(..., max_length=50)
 
 
 class CategoryUpdate(BaseModel):
     """Input for setting project category."""
-    category: str
+    category: str = Field(..., max_length=100)
 
 
 class Project(BaseModel):

@@ -15,11 +15,11 @@ dependencies = [
     "opentelemetry-sdk>=1.29.0",
     "opentelemetry-exporter-otlp-proto-grpc>=1.29.0",
     "opentelemetry-instrumentation-fastapi>=0.50b0",
-    "sentence-transformers>=3.3.0",
-    "rank-bm25>=0.2.2",
     "httpx>=0.28.0",
-    "weasyprint>=63.0",
 ]
+
+# v1.1 (API-backed RAG): sentence-transformers, rank-bm25
+# v1.1 (PDF export): weasyprint
 
 [project.optional-dependencies]
 dev = [
