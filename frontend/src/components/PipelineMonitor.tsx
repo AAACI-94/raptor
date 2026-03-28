@@ -13,7 +13,7 @@ interface StageInfo {
 const PIPELINE_STAGES: StageInfo[] = [
   { key: 'research', label: 'Research', agent: 'Research Strategist', description: 'Building research plan with grounded sources', estimatedSeconds: 100 },
   { key: 'structure', label: 'Structure', agent: 'Structure Architect', description: 'Generating publication-appropriate outline', estimatedSeconds: 90 },
-  { key: 'draft', label: 'Drafting', agent: 'Domain Writer', description: 'Writing each section with Toulmin arguments', estimatedSeconds: 350 },
+  { key: 'draft', label: 'Drafting', agent: 'Domain Writer', description: 'Writing each section with Toulmin arguments', estimatedSeconds: 200 },
   { key: 'figures', label: 'Figures', agent: 'Visual Architect', description: 'Creating professional diagrams', estimatedSeconds: 150 },
   { key: 'review', label: 'Review', agent: 'Critical Reviewer', description: 'Evaluating against quality rubric', estimatedSeconds: 120 },
   { key: 'production', label: 'Production', agent: 'Production Agent', description: 'Formatting document and bibliography', estimatedSeconds: 40 },
@@ -89,6 +89,17 @@ export default function PipelineMonitor({ projectStatus, events, revisionCycles,
     return progress;
   }, [events]);
 
+  // Dynamic time estimates from backend (overrides hardcoded defaults)
+  const dynamicEstimates = useMemo(() => {
+    const overrides: Record<string, number> = {};
+    for (const ev of events) {
+      if (ev.event === 'agent_progress' && ev.agent === 'domain_writer' && ev.data?.estimated_seconds) {
+        overrides['draft'] = ev.data.estimated_seconds;
+      }
+    }
+    return overrides;
+  }, [events]);
+
   // Compute stage durations from events
   const stageDurations = useMemo(() => {
     const durations: Record<string, number> = {};
@@ -124,12 +135,13 @@ export default function PipelineMonitor({ projectStatus, events, revisionCycles,
   ] : undefined;
 
   const etaSeconds = remainingStages.reduce((sum, s) => {
+    const estimate = dynamicEstimates[s.key] ?? s.estimatedSeconds;
     if (stageStatuses[s.key] === 'active' && activeAgentProgress) {
       // Partial: estimate remaining based on progress percentage
-      const remaining = s.estimatedSeconds * (1 - activeAgentProgress.pct / 100);
+      const remaining = estimate * (1 - activeAgentProgress.pct / 100);
       return sum + remaining;
     }
-    return sum + s.estimatedSeconds;
+    return sum + estimate;
   }, 0);
 
   const isRunning = Object.values(stageStatuses).some(s => s === 'active');
@@ -246,8 +258,8 @@ export default function PipelineMonitor({ projectStatus, events, revisionCycles,
               {/* Duration / ETA */}
               <div className="text-xs text-gray-400 flex-shrink-0 w-16 text-right">
                 {status === 'completed' && duration && `${duration}s`}
-                {status === 'active' && `~${Math.ceil(stage.estimatedSeconds / 60)}m`}
-                {status === 'pending' && `~${Math.ceil(stage.estimatedSeconds / 60)}m`}
+                {status === 'active' && `~${Math.ceil((dynamicEstimates[stage.key] ?? stage.estimatedSeconds) / 60)}m`}
+                {status === 'pending' && `~${Math.ceil((dynamicEstimates[stage.key] ?? stage.estimatedSeconds) / 60)}m`}
               </div>
             </div>
           );

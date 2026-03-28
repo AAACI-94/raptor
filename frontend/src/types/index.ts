@@ -133,6 +133,8 @@ export interface PipelineEvent {
   data?: {
     message?: string;
     progress_pct?: number;
+    section_count?: number;
+    estimated_seconds?: number;
   };
   artifact_id?: string;
   error?: string;

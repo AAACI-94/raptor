@@ -197,6 +197,9 @@ class BaseAgent(ABC):
         except Exception as e:
             self.logger.warning("[%s] Failed to log decision: %s", self.role, e)
 
-    async def broadcast_progress(self, project_id: str, message: str, progress_pct: int = 0) -> None:
-        """Send a progress update via WebSocket."""
-        await ws_manager.send_progress(project_id, self.role, message, progress_pct)
+    async def broadcast_progress(self, project_id: str, message: str, progress_pct: int = 0, **extra) -> None:
+        """Send a progress update via WebSocket.
+
+        Extra kwargs are forwarded to ws_manager (e.g., section_count, estimated_seconds).
+        """
+        await ws_manager.send_progress(project_id, self.role, message, progress_pct, **extra)

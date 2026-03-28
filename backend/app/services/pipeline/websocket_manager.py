@@ -53,15 +53,20 @@ class WebSocketManager:
         for ws in dead_connections:
             self.disconnect(project_id, ws)
 
-    async def send_progress(self, project_id: str, agent: str, message: str, progress_pct: int = 0) -> None:
-        """Send a progress update for an agent."""
+    async def send_progress(self, project_id: str, agent: str, message: str, progress_pct: int = 0, **extra: Any) -> None:
+        """Send a progress update for an agent.
+
+        Extra kwargs are merged into the data dict (e.g., section_count, estimated_seconds).
+        """
+        data: dict[str, Any] = {
+            "message": message,
+            "progress_pct": progress_pct,
+        }
+        data.update(extra)
         await self.broadcast(project_id, {
             "event": "agent_progress",
             "agent": agent,
-            "data": {
-                "message": message,
-                "progress_pct": progress_pct,
-            },
+            "data": data,
         })
 
 

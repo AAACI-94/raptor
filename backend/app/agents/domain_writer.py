@@ -1,9 +1,12 @@
 """Agent 3: Domain Writer.
 
-Drafts sections INDIVIDUALLY grounded in the research corpus.
-Each section gets its own LLM call for full coverage of the outline.
+Drafts sections grounded in the research corpus using hybrid parallel execution:
+- Phase 1: Introduction (sequential, sets narrative anchor)
+- Phase 2: Body sections (parallel via asyncio.gather, capped by semaphore)
+- Phase 3: Conclusion (sequential, wraps up with full context)
 """
 
+import asyncio
 import json
 import logging
 from typing import Any
@@ -101,6 +104,9 @@ class DomainWriter(BaseAgent):
     role = AgentRole.DOMAIN_WRITER
     artifact_type = ArtifactType.SECTION_DRAFT
 
+    # Max concurrent LLM calls during parallel body drafting
+    PARALLEL_LIMIT = 3
+
     async def execute(self, project: Any, venue: Any) -> Any:
         await self.broadcast_progress(project.id, "Preparing to draft...", 5)
 
@@ -143,63 +149,246 @@ Required changes:
         # Load learned prompt patterns for this venue (cross-project learning)
         learned_guidance = self._get_learned_patterns(venue)
 
-        # Draft each section individually
-        all_sections = []
+        # Shared context for all _draft_section calls
+        draft_ctx = {
+            "project": project,
+            "all_sources": all_sources,
+            "source_by_title": source_by_title,
+            "tone_instructions": tone_instructions,
+            "cite_fmt": cite_fmt,
+            "revision_guidance": revision_guidance,
+            "learned_guidance": learned_guidance,
+            "total_sections": len(outline_sections),
+        }
+
+        # Broadcast section count and dynamic time estimate
+        estimated_secs = self._estimate_duration(len(outline_sections))
+        await self.broadcast_progress(
+            project.id,
+            f"Planning {len(outline_sections)} sections (hybrid parallel execution)",
+            8,
+            section_count=len(outline_sections),
+            estimated_seconds=estimated_secs,
+        )
+
+        all_sections: list[dict] = []
         total_input_tokens = 0
         total_output_tokens = 0
         total_duration = 0
         total_cost = 0.0
-        prior_sections_summary = ""
 
-        for i, section_spec in enumerate(outline_sections):
-            section_name = section_spec.get("section_name", f"Section {i+1}")
-            min_words = section_spec.get("min_words", 300)
-            max_words = section_spec.get("max_words", 1000)
-            criteria = section_spec.get("acceptance_criteria", [])
-            assigned_source_titles = section_spec.get("assigned_sources", [])
+        def _accumulate(result: dict) -> None:
+            nonlocal total_input_tokens, total_output_tokens, total_duration, total_cost
+            total_input_tokens += result["input_tokens"]
+            total_output_tokens += result["output_tokens"]
+            total_duration += result["duration_ms"]
+            total_cost += result["cost_usd"]
 
-            # Filter sources: only send assigned sources for this section
-            # Falls back to all sources if no assignments or no matches
-            section_sources = []
-            if assigned_source_titles:
-                for title in assigned_source_titles:
-                    match = source_by_title.get(title.lower().strip())
-                    if match:
-                        section_sources.append(match)
-                    else:
-                        # Fuzzy match: check if any source title contains this string
-                        for st, s in source_by_title.items():
-                            if title.lower() in st or st in title.lower():
-                                section_sources.append(s)
-                                break
+        # ── Phase 1: Introduction (sequential) ──────────────────────────
+        await self.broadcast_progress(
+            project.id,
+            f"Drafting introduction: {outline_sections[0].get('section_name', 'Section 1')}",
+            10,
+        )
+        intro_result, intro_data = await self._draft_section(
+            section_spec=outline_sections[0],
+            index=0,
+            prior_context="This is the first section.",
+            **draft_ctx,
+        )
+        all_sections.append(intro_data)
+        _accumulate(intro_result)
+        logger.info("[writer] Phase 1 complete: '%s' (%d words)",
+                    intro_data.get("section_name", "?"), intro_data.get("word_count", 0))
 
-            # If no matches found, send top 3 most relevant sources
-            if not section_sources:
-                section_sources = sorted(
-                    all_sources,
-                    key=lambda s: s.get("relevance_score", 0),
-                    reverse=True,
-                )[:3]
+        # Narrative anchor: 500-char preview of intro for body sections
+        intro_name = intro_data.get("section_name", "Introduction")
+        intro_preview = intro_data.get("content", "")[:500]
+        narrative_anchor = f"{intro_name}: {intro_preview}..."
 
-            # Condense sources: title + key findings only (not full metadata)
-            condensed_sources = []
-            for idx, s in enumerate(section_sources):
-                condensed_sources.append(
-                    f"[{idx+1}] {s.get('title', 'Untitled')}\n"
-                    f"    Type: {s.get('source_type', '?')} | "
-                    f"Relevance: {s.get('relevance_score', '?')}\n"
-                    f"    Key findings: {s.get('key_findings', s.get('content_summary', 'N/A'))}"
+        # ── Phase 2: Body sections (parallel) ───────────────────────────
+        if len(outline_sections) > 2:
+            body_specs = outline_sections[1:-1]
+            semaphore = asyncio.Semaphore(self.PARALLEL_LIMIT)
+            body_completed = 0
+
+            async def _draft_body(idx_in_body: int, spec: dict) -> tuple[dict, dict]:
+                nonlocal body_completed
+                async with semaphore:
+                    result, data = await self._draft_section(
+                        section_spec=spec,
+                        index=idx_in_body + 1,  # offset for intro
+                        prior_context=narrative_anchor,
+                        **draft_ctx,
+                    )
+                body_completed += 1
+                pct = int(20 + (50 * body_completed / len(body_specs)))
+                await self.broadcast_progress(
+                    project.id,
+                    f"Body section {body_completed}/{len(body_specs)}: {data.get('section_name', '?')} ({data.get('word_count', 0)} words)",
+                    pct,
                 )
-            sources_text = "\n".join(condensed_sources) if condensed_sources else "No specific sources assigned."
+                logger.info("[writer] Phase 2: '%s' (%d words) [%d/%d]",
+                           data.get("section_name", "?"), data.get("word_count", 0),
+                           body_completed, len(body_specs))
+                return result, data
 
-            pct = int(10 + (80 * i / len(outline_sections)))
-            await self.broadcast_progress(
-                project.id,
-                f"Drafting section {i+1}/{len(outline_sections)}: {section_name} ({len(section_sources)} sources)",
-                pct,
+            body_results = await asyncio.gather(
+                *[_draft_body(i, spec) for i, spec in enumerate(body_specs)],
+                return_exceptions=True,
             )
 
-            user_msg = f"""## Section to Draft
+            # Process results, retry failures once
+            for i, outcome in enumerate(body_results):
+                if isinstance(outcome, Exception):
+                    logger.warning("[writer] Body section %d failed: %s. Retrying sequentially.", i + 1, outcome)
+                    try:
+                        result, data = await self._draft_section(
+                            section_spec=body_specs[i],
+                            index=i + 1,
+                            prior_context=narrative_anchor,
+                            **draft_ctx,
+                        )
+                        all_sections.append(data)
+                        _accumulate(result)
+                    except Exception as retry_err:
+                        logger.error("[writer] Body section %d retry failed: %s. Inserting stub.", i + 1, retry_err)
+                        all_sections.append({
+                            "section_name": body_specs[i].get("section_name", f"Section {i + 2}"),
+                            "content": f"[GENERATION ERROR: This section could not be drafted. Error: {retry_err}]",
+                            "word_count": 0,
+                            "citations_used": [],
+                            "confidence_flags": {},
+                            "nda_flags": [],
+                            "generation_error": True,
+                        })
+                else:
+                    result, data = outcome
+                    all_sections.append(data)
+                    _accumulate(result)
+
+        # ── Phase 3: Conclusion (sequential) ────────────────────────────
+        if len(outline_sections) > 1:
+            # Build full prior summary from all completed sections
+            prior_summary = ""
+            for s in all_sections:
+                preview = s.get("content", "")[:200]
+                prior_summary += f"\n{s.get('section_name', '?')}: {preview}..."
+
+            conclusion_spec = outline_sections[-1]
+            await self.broadcast_progress(
+                project.id,
+                f"Drafting conclusion: {conclusion_spec.get('section_name', 'Conclusion')}",
+                85,
+            )
+            concl_result, concl_data = await self._draft_section(
+                section_spec=conclusion_spec,
+                index=len(outline_sections) - 1,
+                prior_context=prior_summary,
+                **draft_ctx,
+            )
+            all_sections.append(concl_data)
+            _accumulate(concl_result)
+            logger.info("[writer] Phase 3 complete: '%s' (%d words)",
+                       concl_data.get("section_name", "?"), concl_data.get("word_count", 0))
+
+        # ── Assemble payload ────────────────────────────────────────────
+        total_words = sum(s.get("word_count", 0) for s in all_sections)
+        payload = {
+            "sections": all_sections,
+            "total_word_count": total_words,
+            "section_count": len(all_sections),
+            "tone_consistency_notes": f"Drafted {len(all_sections)} sections (hybrid parallel: 1 intro + {max(0, len(outline_sections) - 2)} body parallel + 1 conclusion)",
+        }
+
+        self.log_decision(
+            project.id,
+            decision=f"Drafted {len(all_sections)} sections, {total_words} total words",
+            rationale=f"Hybrid parallel execution: intro sequential, {max(0, len(outline_sections) - 2)} body sections parallel (limit {self.PARALLEL_LIMIT}), conclusion sequential. "
+                      f"Sections: {', '.join(s.get('section_name','?') for s in all_sections)}",
+            confidence=0.8,
+        )
+
+        # Single reflection on the combined output
+        await self.broadcast_progress(project.id, "Self-reflection on full draft...", 92)
+        reflection = await self.self_reflect(
+            output=f"Total sections: {len(all_sections)}, Total words: {total_words}. "
+                   + json.dumps([{"name": s.get("section_name"), "words": s.get("word_count")} for s in all_sections]),
+            reflection_prompt=REFLECTION_PROMPT,
+            project_id=project.id,
+        )
+
+        await self.broadcast_progress(project.id, f"Draft complete: {total_words} words across {len(all_sections)} sections", 100)
+
+        metadata = ArtifactMetadata(
+            model=f"multi-call ({len(all_sections)} sections, parallel)",
+            input_tokens=total_input_tokens,
+            output_tokens=total_output_tokens,
+            duration_ms=total_duration,
+            estimated_cost_usd=total_cost,
+        )
+
+        return self.build_envelope(
+            project_id=project.id,
+            payload=payload,
+            metadata=metadata,
+            target_agent=AgentRole.CRITICAL_REVIEWER,
+            reflection_result=reflection,
+        )
+
+    async def _draft_section(
+        self,
+        section_spec: dict,
+        index: int,
+        prior_context: str,
+        project: Any,
+        all_sources: list[dict],
+        source_by_title: dict[str, dict],
+        tone_instructions: str,
+        cite_fmt: str,
+        revision_guidance: str,
+        learned_guidance: str,
+        total_sections: int,
+    ) -> tuple[dict, dict]:
+        """Draft a single section. Returns (llm_result, parsed_section_data)."""
+        section_name = section_spec.get("section_name", f"Section {index + 1}")
+        min_words = section_spec.get("min_words", 300)
+        max_words = section_spec.get("max_words", 1000)
+        criteria = section_spec.get("acceptance_criteria", [])
+        assigned_source_titles = section_spec.get("assigned_sources", [])
+
+        # Filter sources for this section
+        section_sources = []
+        if assigned_source_titles:
+            for title in assigned_source_titles:
+                match = source_by_title.get(title.lower().strip())
+                if match:
+                    section_sources.append(match)
+                else:
+                    for st, s in source_by_title.items():
+                        if title.lower() in st or st in title.lower():
+                            section_sources.append(s)
+                            break
+
+        if not section_sources:
+            section_sources = sorted(
+                all_sources,
+                key=lambda s: s.get("relevance_score", 0),
+                reverse=True,
+            )[:3]
+
+        # Condense sources
+        condensed_sources = []
+        for idx, s in enumerate(section_sources):
+            condensed_sources.append(
+                f"[{idx+1}] {s.get('title', 'Untitled')}\n"
+                f"    Type: {s.get('source_type', '?')} | "
+                f"Relevance: {s.get('relevance_score', '?')}\n"
+                f"    Key findings: {s.get('key_findings', s.get('content_summary', 'N/A'))}"
+            )
+        sources_text = "\n".join(condensed_sources) if condensed_sources else "No specific sources assigned."
+
+        user_msg = f"""## Section to Draft
 Name: {section_name}
 Target word count: {min_words}-{max_words} words (MINIMUM {min_words} words)
 Acceptance criteria:
@@ -218,7 +407,7 @@ Acceptance criteria:
 {cite_fmt}
 
 ## Prior Sections (for continuity)
-{prior_sections_summary or 'This is the first section.'}
+{prior_context}
 {revision_guidance}{learned_guidance}
 ## Instructions
 Write the COMPLETE content for the "{section_name}" section.
@@ -230,74 +419,36 @@ Write the COMPLETE content for the "{section_name}" section.
 
 Respond with the JSON structure from your system prompt."""
 
-            result = await self.complete(
-                messages=[{"role": "user", "content": user_msg}],
-                system=SECTION_SYSTEM,
-                project_id=project.id,
-                operation=f"draft_section_{i+1}",
-                max_tokens=8192,
-                temperature=0.8,
-            )
-
-            section_data = self._parse_section(result["content"], section_name)
-            all_sections.append(section_data)
-
-            total_input_tokens += result["input_tokens"]
-            total_output_tokens += result["output_tokens"]
-            total_duration += result["duration_ms"]
-            total_cost += result["cost_usd"]
-
-            # Build summary of prior sections for continuity
-            content_preview = section_data.get("content", "")[:200]
-            prior_sections_summary += f"\n{section_name}: {content_preview}..."
-
-            logger.info("[writer] Section %d/%d '%s': %d words",
-                       i+1, len(outline_sections), section_name,
-                       section_data.get("word_count", 0))
-
-        # Assemble payload
-        total_words = sum(s.get("word_count", 0) for s in all_sections)
-        payload = {
-            "sections": all_sections,
-            "total_word_count": total_words,
-            "section_count": len(all_sections),
-            "tone_consistency_notes": f"Drafted {len(all_sections)} sections individually with shared tone context",
-        }
-
-        self.log_decision(
-            project.id,
-            decision=f"Drafted {len(all_sections)} sections, {total_words} total words",
-            rationale=f"Each section drafted individually against outline spec. "
-                      f"Sections: {', '.join(s.get('section_name','?') for s in all_sections)}",
-            confidence=0.8,
-        )
-
-        # Single reflection on the combined output
-        await self.broadcast_progress(project.id, "Self-reflection on full draft...", 92)
-        reflection = await self.self_reflect(
-            output=f"Total sections: {len(all_sections)}, Total words: {total_words}. "
-                   + json.dumps([{"name": s.get("section_name"), "words": s.get("word_count")} for s in all_sections]),
-            reflection_prompt=REFLECTION_PROMPT,
+        result = await self.complete(
+            messages=[{"role": "user", "content": user_msg}],
+            system=SECTION_SYSTEM,
             project_id=project.id,
+            operation=f"draft_section_{index + 1}",
+            max_tokens=8192,
+            temperature=0.8,
         )
 
-        await self.broadcast_progress(project.id, f"Draft complete: {total_words} words across {len(all_sections)} sections", 100)
+        section_data = self._parse_section(result["content"], section_name)
+        return result, section_data
 
-        metadata = ArtifactMetadata(
-            model=f"multi-call ({len(all_sections)} sections)",
-            input_tokens=total_input_tokens,
-            output_tokens=total_output_tokens,
-            duration_ms=total_duration,
-            estimated_cost_usd=total_cost,
-        )
+    @staticmethod
+    def _estimate_duration(section_count: int) -> int:
+        """Estimate total drafting time in seconds based on section count.
 
-        return self.build_envelope(
-            project_id=project.id,
-            payload=payload,
-            metadata=metadata,
-            target_agent=AgentRole.CRITICAL_REVIEWER,
-            reflection_result=reflection,
-        )
+        Hybrid model: intro (sequential) + body (parallel batch) + conclusion (sequential) + reflection.
+        """
+        SECONDS_PER_SECTION = 60
+        REFLECTION_SECONDS = 15
+        if section_count <= 1:
+            return SECONDS_PER_SECTION + REFLECTION_SECONDS
+        elif section_count == 2:
+            return (2 * SECONDS_PER_SECTION) + REFLECTION_SECONDS
+        else:
+            # intro + one parallel batch (capped at PARALLEL_LIMIT=3, so ~1-2 batches) + conclusion
+            body_count = section_count - 2
+            parallel_batches = (body_count + 2) // 3  # ceil(body_count / 3)
+            sequential_calls = 2 + parallel_batches  # intro + batches + conclusion
+            return int(sequential_calls * SECONDS_PER_SECTION * 1.1) + REFLECTION_SECONDS
 
     def _build_tone_context(self, venue: Any) -> str:
         if venue and venue.profile_data.tone_profile:
