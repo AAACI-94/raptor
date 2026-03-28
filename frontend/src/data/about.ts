@@ -1,6 +1,6 @@
 // Version is now fetched from the backend /api/health endpoint.
 // This constant is a fallback only, displayed while the API call is in flight.
-export const APP_VERSION_FALLBACK = '1.2.1';
+export const APP_VERSION_FALLBACK = '1.2.2';
 
 export interface AgentInfo {
   name: string;

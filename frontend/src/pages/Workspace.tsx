@@ -5,6 +5,7 @@ import { api } from '../api/client';
 import { useWebSocket } from '../hooks/useWebSocket';
 import DocumentPreview from '../components/DocumentPreview';
 import FigurePreview from '../components/FigurePreview';
+import PipelineMonitor from '../components/PipelineMonitor';
 import type { Project, PipelineStatus, PipelineEvent } from '../types';
 
 const STAGES = [
@@ -198,21 +199,13 @@ export default function Workspace() {
         )}
       </div>
 
-      {/* Live Events */}
-      {events.length > 0 && (
-        <div className="bg-gray-900 rounded-lg p-4 mb-6 max-h-48 overflow-y-auto font-mono text-xs">
-          {events.map((ev, i) => (
-            <div key={i} className="text-gray-300 py-0.5">
-              <span className="text-gray-500">[{ev.agent || 'pipeline'}]</span>{' '}
-              <span className={ev.event === 'agent_error' ? 'text-red-400' : ev.event === 'agent_completed' ? 'text-green-400' : 'text-blue-300'}>
-                {ev.event}
-              </span>
-              {ev.data?.message && <span className="text-gray-400"> {ev.data.message}</span>}
-              {ev.data?.progress_pct !== undefined && <span className="text-yellow-400"> ({ev.data.progress_pct}%)</span>}
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Pipeline Monitor */}
+      <PipelineMonitor
+        projectStatus={project.status}
+        events={events}
+        revisionCycles={project.revision_cycles}
+        maxRevisions={pipeline?.max_revision_cycles || 3}
+      />
 
       {/* Document Preview */}
       {hasPreviewableContent && viewMode === 'preview' && (
