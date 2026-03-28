@@ -15,6 +15,31 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: '1.2.1',
+    date: '2026-03-28',
+    summary: 'Bug fixes, DevOps hardening, comprehensive test suite',
+    added: [
+      { title: '160 tests across 14 files', badge: 'infra', description: 'Coverage from 39% to 93% of modules' },
+      { title: 'Security headers middleware', badge: 'infra', description: 'X-Content-Type-Options, X-Frame-Options, CSP, Referrer-Policy' },
+      { title: 'Rate limiting middleware', badge: 'infra', description: '100 rpm general, 10 rpm AI pipeline, per-IP' },
+      { title: 'GitHub Actions CI', badge: 'infra', description: 'Backend pytest + arch lint, frontend tsc' },
+      { title: 'Makefile', badge: 'infra', description: '10 targets: dev, test, lint, build, up, down, rebuild, clean' },
+      { title: 'Arch lint script', badge: 'infra', description: 'Standalone checker for code quality rules' },
+      { title: 'Input size limits', badge: 'infra', description: 'Pydantic field constraints on all create/update models' },
+    ],
+    fixed: [
+      { title: 'Observatory endpoints return types', badge: 'api', description: 'insights, diagnostics, rubric-history declared -> dict but returned list (500 error)' },
+      { title: 'Route shadowing: /quality/trends', badge: 'api', description: '/quality/{project_id} was catching "trends" as a project ID' },
+      { title: 'Version DRY', badge: 'infra', description: 'Single source of truth from pyproject.toml; sidebar showed wrong version (1.0.0)' },
+      { title: 'Dockerfiles: non-root users', badge: 'infra', description: 'Backend runs as raptor user, frontend uses nginx-unprivileged' },
+      { title: 'Mermaid.js code-split', badge: 'ui', description: '2.8MB bundle dynamically imported only when Figures tab viewed' },
+      { title: 'Accessibility: skip nav, ARIA, page titles', badge: 'ui', description: 'Skip navigation link, aria-labels, document.title per route, form labels' },
+      { title: 'Unused deps removed', badge: 'infra', description: 'sentence-transformers, rank-bm25, weasyprint, torch (~500MB saved)' },
+      { title: 'npm vulnerability', badge: 'infra', description: 'picomatch ReDoS (high severity) fixed via npm audit fix' },
+      { title: 'OTel test hanging', badge: 'infra', description: 'Skip exporters when endpoint is empty; no background threads in tests' },
+    ],
+  },
+  {
     version: '1.2.0',
     date: '2026-03-26',
     summary: 'Research Library, Publication Targets rename, journalistic standards, and context engineering',
