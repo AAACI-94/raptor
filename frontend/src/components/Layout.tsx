@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BookOpen, Library, LayoutDashboard, BarChart3, Building2, Info, Plus } from 'lucide-react';
+import { BookOpen, Library, BarChart3, Building2, Info, Plus } from 'lucide-react';
+import { api } from '../api/client';
 
 const NAV_ITEMS = [
   { path: '/', label: 'Library', icon: Library },
@@ -16,6 +17,14 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
+  const [version, setVersion] = useState('');
+
+  // Fetch version from backend health endpoint (single source of truth: pyproject.toml)
+  useEffect(() => {
+    api.health()
+      .then((data) => setVersion(data.version || ''))
+      .catch(() => setVersion(''));
+  }, []);
 
   return (
     <div className="min-h-screen flex">
@@ -52,7 +61,7 @@ export default function Layout({ children }: LayoutProps) {
         </nav>
 
         <div className="p-4 border-t border-gray-700 text-xs text-gray-500">
-          RAPTOR v1.0.0
+          {version ? `RAPTOR v${version}` : 'RAPTOR'}
         </div>
       </aside>
 

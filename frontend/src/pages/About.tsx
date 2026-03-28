@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BookOpen, Copy, Check, Shield, Search, Wrench, Sparkles, Scale, Brain } from 'lucide-react';
-import { APP_VERSION, agents, selfHealingComponents, pipelineStages, publicationTargetTypes, techStack, qualityStandards, contextEngineering } from '../data/about';
+import { APP_VERSION_FALLBACK, agents, selfHealingComponents, pipelineStages, publicationTargetTypes, techStack, qualityStandards, contextEngineering } from '../data/about';
+import { api } from '../api/client';
 import { changelog } from '../data/changelog';
 import type { ChangelogItem } from '../data/changelog';
 
@@ -21,6 +22,11 @@ const HEALING_ICONS: Record<string, typeof Shield> = { Shield, Search, Wrench };
 
 export default function About() {
   const [copied, setCopied] = useState(false);
+  const [appVersion, setAppVersion] = useState(APP_VERSION_FALLBACK);
+
+  useEffect(() => {
+    api.health().then((d) => { if (d.version) setAppVersion(d.version); }).catch(() => {});
+  }, []);
 
   const copyAsMarkdown = () => {
     const md = generateMarkdown();
@@ -37,7 +43,7 @@ export default function About() {
           <div className="flex items-center gap-3">
             <BookOpen className="h-8 w-8 text-raptor-500" />
             <h1 className="text-3xl font-bold">RAPTOR</h1>
-            <span className="px-2 py-0.5 bg-raptor-100 text-raptor-700 rounded text-sm font-medium">v{APP_VERSION}</span>
+            <span className="px-2 py-0.5 bg-raptor-100 text-raptor-700 rounded text-sm font-medium">v{appVersion}</span>
           </div>
           <p className="text-gray-500 mt-2">Research Authoring Platform with Traceable Orchestrated Reasoning</p>
         </div>
@@ -253,7 +259,7 @@ function ChangelogItemRow({ item }: { item: string | ChangelogItem }) {
 
 function generateMarkdown(): string {
   const lines = [
-    `# RAPTOR v${APP_VERSION}`,
+    `# RAPTOR v${appVersion}`,
     '',
     '## Research Authoring Platform with Traceable Orchestrated Reasoning',
     '',

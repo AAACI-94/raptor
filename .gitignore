@@ -19,7 +19,9 @@ frontend/dist/
 *.db-journal
 *.db-wal
 *.db-shm
-data/
+# Database files (backend only)
+/backend/data/
+/data/
 
 # Environment
 .env

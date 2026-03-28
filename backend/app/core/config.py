@@ -9,7 +9,24 @@ class Settings(BaseSettings):
     # Server
     port: int = 8000
     log_level: str = "INFO"
-    version: str = "1.2.0"
+    version: str = ""  # Derived from pyproject.toml at startup
+
+    def model_post_init(self, __context) -> None:
+        """Derive version from pyproject.toml (single source of truth)."""
+        if not self.version:
+            import tomllib
+            from pathlib import Path
+            # Walk up to find pyproject.toml
+            search = Path(__file__).parent
+            while search != search.parent:
+                pyproject = search / "pyproject.toml"
+                if pyproject.exists():
+                    with open(pyproject, "rb") as f:
+                        data = tomllib.load(f)
+                    self.version = data.get("project", {}).get("version", "0.0.0")
+                    return
+                search = search.parent
+            self.version = "0.0.0"
 
     # Database
     database_path: str = "./data/raptor.db"
