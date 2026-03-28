@@ -7,6 +7,7 @@ services:
       - "${PORT:-8000}:8000"
     volumes:
       - raptor-data:/app/data
+    env_file: .env
     environment:
       - DATABASE_PATH=/app/data/raptor.db
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -28,12 +29,19 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     deploy:
       resources:
         limits:
           memory: 2G
         reservations:
           memory: 512M
+    networks:
+      - raptor-net
     restart: unless-stopped
 
   raptor-frontend:
@@ -41,25 +49,38 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "3000:8080"
     depends_on:
       raptor-api:
         condition: service_healthy
+    networks:
+      - raptor-net
     restart: unless-stopped
 
   jaeger:
-    image: jaegertracing/all-in-one:latest
+    image: jaegertracing/all-in-one:1.62
     ports:
       - "16686:16686"
       - "4317:4317"
       - "4318:4318"
     environment:
       - COLLECTOR_OTLP_ENABLED=true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     deploy:
       resources:
         limits:
           memory: 512M
+    networks:
+      - raptor-net
     restart: unless-stopped
+
+networks:
+  raptor-net:
+    driver: bridge
 
 volumes:
   raptor-data:

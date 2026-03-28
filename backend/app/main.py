@@ -11,6 +11,7 @@ from app.core.config import settings
 from app.core.database import init_db, close_db
 from app.core.telemetry import init_telemetry
 from app.core.logging_config import setup_logging
+from app.middleware.rate_limit import RateLimitMiddleware
 from app.routers import health, projects, venues, artifacts, pipeline, observatory, exports, feedback
 
 logger = logging.getLogger(__name__)
@@ -74,6 +75,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Rate limiting
+app.add_middleware(RateLimitMiddleware)
 
 # Routers
 app.include_router(health.router, prefix="/api", tags=["health"])
